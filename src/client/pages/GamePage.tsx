@@ -273,7 +273,7 @@ export default function GamePage() {
             <Link to="/" className="flex items-center gap-2 hover:opacity-80">
               <Gamepad2 className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                GameFinder
+                RipFetch
               </h1>
             </Link>
             <button
@@ -328,7 +328,7 @@ export default function GamePage() {
                 <Sparkles className="h-3 w-3 text-primary absolute -top-1 -right-1" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                GameFinder
+                RipFetch
               </h1>
             </div>
           </div>

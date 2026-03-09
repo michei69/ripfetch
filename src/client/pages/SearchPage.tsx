@@ -75,7 +75,7 @@ export default function SearchPage() {
               <Sparkles className="h-3 w-3 text-primary absolute -top-1 -right-1" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              GameFinder
+              RipFetch
             </h1>
           </div>
           <button
