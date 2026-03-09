@@ -77,6 +77,6 @@ new Elysia()
         if (response) return response
         return serveStatic("index.html") || new Response("Not found", { status: 404 })
     })
-    .listen(3000, ({ port }) => {
+    .listen(parseInt(process.env["PORT"] || "3000"), ({ port }) => {
         console.log(`Server is running at http://localhost:${port}`)
     })
