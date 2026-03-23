@@ -102,7 +102,7 @@ interface SteamInfo {
   developers: string[]
   publishers: string[]
   genres: Array<{ id: number; description: string }>,
-  price_overview: {
+  price_overview?: {
     initial_formatted: string,  
     final_formatted: string  
   },
@@ -389,7 +389,7 @@ export default function GamePage() {
 
                   <div className="flex flex-wrap gap-2 mb-6">
                     <span className="px-3 py-1.5 bg-green-400 dark:bg-green-800 text-primary rounded-full text-sm font-medium">
-                      {steamInfo.is_free ? "Free" : steamInfo.price_overview.initial_formatted || steamInfo.price_overview.final_formatted }
+                      {steamInfo.is_free ? "Free" : steamInfo.price_overview?.initial_formatted || steamInfo.price_overview?.final_formatted || "??" }
                     </span>
                     {steamInfo.genres?.map((genre) => (
                       <span
