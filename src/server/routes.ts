@@ -1,4 +1,4 @@
-import Elysia, { t } from "elysia"
+import Elysia, { sse, t } from "elysia"
 import { swagger } from "@elysiajs/swagger"
 import { cors } from "@elysiajs/cors"
 import Steam from "../api/game-stuff/steam"
@@ -9,15 +9,59 @@ import Steamrip from "../api/game-stuff/steamrip"
 import Steamunlocked from "../api/game-stuff/steamunlocked"
 import Uploadhaven from "../api/game-stuff/uploadhaven"
 import { getCache, setCache, setSearchCache, setLinksCache } from "./cache"
+import DirectSolver from "@/api/game-stuff/direct"
 
 const gameSources = [new Game3rb(), new Igg(), new Onlinefix(), new Steamrip(), new Steamunlocked()]
 
-// @ts-ignore
 async function getDownloadsForGame(gameName: string): Promise<Record<string, Record<string, string>>> {
     const downloads: Record<string, Record<string, string>> = {}
 
     for (const source of gameSources) {
         try {
+            const results = await source.search(gameName)
+
+            try {
+                for (const result of results) {
+                    const sourceName = `${source.displayName} (${result.title})`
+                    if (!downloads[sourceName]) {
+                        const dls = await source.getDownloads(result.url)
+                        if (Object.keys(dls).length > 0) {
+                            const flatDls: Record<string, string> = {}
+                            for (const [host, links] of Object.entries(dls)) {
+                                for (const [name, url] of Object.entries(links)) {
+                                    flatDls[`${host} - ${name}`] = url
+                                }
+                            }
+                            downloads[sourceName] = flatDls
+                            break
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Error getting downloads from ${source.displayName}:`, error)
+            }
+        } catch (error) {
+            console.error(`Error searching ${source.displayName}:`, error)
+        }
+    }
+
+    return downloads
+}
+async function* getDownloadsForGameSSE(gameName: string, ssePass: any) {
+    const downloads: Record<string, Record<string, string>> = {}
+
+    let i = 0
+    for (const source of gameSources) {
+        i++
+        try {
+            yield ssePass({
+                event: "search",
+                data: {
+                    source: source.displayName,
+                    sourceIdx: i,
+                    total: gameSources.length,
+                }
+            })
             const results = await source.search(gameName)
 
             try {
@@ -131,6 +175,47 @@ export const searchRoute = new Elysia()
             description: "Get download links from various sources for a game",
         },
     })
+    .get("/game/:id/links/sse", async function* ({ params }) {
+        const cacheKey = `links:${params.id}`
+        const cached = await getCache(cacheKey)
+        if (cached !== null) {
+            yield sse({
+                event: "data",
+                data: cached
+            })
+            return cached
+        }
+
+        const steamInfo = await Steam.getInfo(params.id)
+        if (!steamInfo) {
+            const response = { downloads: {} }
+            await setLinksCache(cacheKey, response)
+
+            yield sse({
+                event: "data",
+                data: response
+            })
+            return response
+        }
+        const downloads = yield* getDownloadsForGameSSE(steamInfo.name, sse)
+        const response = { downloads }
+        await setLinksCache(cacheKey, response)
+
+        yield sse({
+            event: "data",
+            data: response
+        })
+        return response
+    }, {
+        params: t.Object({
+            id: t.Union([t.String(), t.Number()], {description: "Steam app id"}),
+        }),
+        detail: {
+            tags: ["Game"],
+            summary: "Get download links for game",
+            description: "Get download links from various sources for a game",
+        },
+    })
     .get("/uploadhaven/:id", async ({ params, set }) => {
         try {
             const realUrl = await Uploadhaven.getRealUrl(`https://uploadhaven.com/download/${params.id}`);
@@ -170,6 +255,33 @@ export const searchRoute = new Elysia()
             summary: "Proxy download from Uploadhaven",
             description: "Get real download URL from Uploadhaven and stream the file",
         },
+    })
+    .get("/direct", async ({ query, set }) => {
+        try {
+            if (!query.url.trim() || !query.url.startsWith("http")) {
+                set.status = 400
+                return { error: "Invalid URL" }
+            }
+            const solved = await DirectSolver.solve(query.url)
+            if (solved) {
+                set.status = 200
+                return { url: solved }
+            } else {
+                set.status = 500
+                return { error: "Not implemented" }
+            }
+        } catch (e) {
+            console.error(e)
+            set.status = 500
+            return { error: "Internal server error" }
+        }
+    }, {
+        query: t.Object({
+            url: t.String({description: "Original URL"}),
+        })
+    })
+    .get("/direct/available", () => {
+        return { available: DirectSolver.available }
     })
 
 export const app = new Elysia({ prefix: "/api" })

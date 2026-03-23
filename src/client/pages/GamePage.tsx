@@ -119,10 +119,12 @@ export default function GamePage() {
   const [loadingLinks, setLoadingLinks] = useState(false)
   const [errorSteam, setErrorSteam] = useState<string | null>(null)
   const [errorLinks, setErrorLinks] = useState<string | null>(null)
+  const [progress, setProgress] = useState(-1)
   const { theme, setTheme } = useTheme()
 
   useEffect(() => {
     let isMounted = true
+    let eventSource: EventSource
 
     const fetchSteamInfo = async () => {
       if (!id) return
@@ -165,22 +167,32 @@ export default function GamePage() {
       setErrorLinks(null)
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/game/${gameId}/links`)
-        if (!res.ok) {
+        setProgress(0)
+        eventSource = new EventSource(`${API_BASE_URL}/api/game/${gameId}/links/sse`)
+        eventSource.addEventListener("data", (event) => {
+          eventSource.close()
+          const data = JSON.parse(event.data)
+          setDownloads(data.downloads)
+          setProgress(101)
+          setLoadingLinks(false)
+        })
+        eventSource.addEventListener("search", (event) => {
+          const data = JSON.parse(event.data)
+          setProgress(data.sourceIdx / data.total * 100)
+          console.log("search", data)
+        })
+        eventSource.onerror = (err) => {
+          console.error(err)
           throw new Error("Failed to fetch download links")
-        }
-        const data = await res.json()
-        if (isMounted) {
-          setDownloads(data.downloads || {})
         }
       } catch (err) {
         if (isMounted) {
           setErrorLinks(err instanceof Error ? err.message : "An error occurred")
         }
       } finally {
-        if (isMounted) {
-          setLoadingLinks(false)
-        }
+        // if (isMounted) {
+        //   setLoadingLinks(false)
+        // }
       }
     }
 
@@ -428,6 +440,9 @@ export default function GamePage() {
                 <p className="text-muted-foreground">
                   Available from {Object.keys(downloads).length} source{Object.keys(downloads).length !== 1 ? "s" : ""}
                 </p>
+              </div>
+              <div className={`h-1 bg-muted rounded-full w-[50%] ml-auto transition-all duration-500 ${progress == -1 || progress > 100 ? "opacity-0": "opacity-100"}`}>
+                <div className={`h-full bg-primary rounded-full transition-all duration-200`} style={{width: `${progress}%`}}></div>
               </div>
             </div>
 
