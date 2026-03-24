@@ -148,27 +148,10 @@ export const searchRoute = new Elysia()
             description: "Get detailed game info from Steam",
         },
     })
-    .get("/game/:id/links", async ({ params, query }) => {
+    .get("/game/:id/links", async ({ params }) => {
         const cacheKey = `links:${params.id}`
         const cached = await getCache(cacheKey)
         if (cached !== null) {
-            if (query.direct) {
-                const downloads = {} as any
-                for (const [sourceName, dls] of Object.entries(cached.downloads)) {
-                    const directs = {} as any
-                    for (const [name, url] of Object.entries(dls as any)) {
-                        const direct = await DirectSolver.solve(url as string)
-                        if (direct) {
-                            directs[name] = direct
-                        }
-                    }
-                    if (Object.keys(directs).length > 0) {
-                        downloads[sourceName] = directs
-                    }
-                }
-                return { downloads }
-            }
-
             return cached
         }
         
@@ -180,24 +163,6 @@ export const searchRoute = new Elysia()
         }
         const downloads = await getDownloadsForGame(steamInfo.name)
         const response = { downloads }
-
-        if (query.direct) {
-            const downloads = {} as any
-            for (const [sourceName, dls] of Object.entries(response.downloads)) {
-                const directs = {} as any
-                for (const [name, url] of Object.entries(dls as any)) {
-                    const direct = await DirectSolver.solve(url as string)
-                    if (direct) {
-                        directs[name] = direct
-                    }
-                }
-                if (Object.keys(directs).length > 0) {
-                    downloads[sourceName] = directs
-                }
-            }
-            return { downloads }
-        }
-
         await setLinksCache(cacheKey, response)
 
         return response
@@ -205,19 +170,49 @@ export const searchRoute = new Elysia()
         params: t.Object({
             id: t.Union([t.String(), t.Number()], {description: "Steam app id"}),
         }),
-        query: t.Object({
-            direct: t.Optional(t.Boolean({description: "Only return direct links"})),
-        }),
         detail: {
             tags: ["Game"],
             summary: "Get download links for game",
             description: "Get download links from various sources for a game",
         },
     })
-    .get("/game/:id/links/sse", async function* ({ params }) {
+    .get("/game/:id/links/sse", async function* ({ params, query, set }) {
+        set.headers["X-Accel-Buffering"] = "no"
+        set.headers["Cache-Control"] = "no-cache"
         const cacheKey = `links:${params.id}`
         const cached = await getCache(cacheKey)
         if (cached !== null) {
+            if (query.direct) {
+                const downloads = {} as any
+                const total = Object.keys(cached.downloads).length
+                let idx = 0
+                for (const [sourceName, dls] of Object.entries(cached.downloads)) {
+                    idx++
+                    yield sse({
+                        event: "search-direct",
+                        data: {
+                            source: sourceName,
+                            sourceIdx: idx,
+                            total
+                        }
+                    })
+                    const directs = {} as any
+                    for (const [name, url] of Object.entries(dls as any)) {
+                        const direct = await DirectSolver.solve(url as string)
+                        if (direct) {
+                            directs[name] = direct
+                        }
+                    }
+                    if (Object.keys(directs).length > 0) {
+                        downloads[sourceName] = directs
+                    }
+                }
+                yield sse({
+                    event: "data",
+                    data: { downloads }
+                })
+                return { downloads }
+            }
             yield sse({
                 event: "data",
                 data: cached
@@ -240,6 +235,38 @@ export const searchRoute = new Elysia()
         const response = { downloads }
         await setLinksCache(cacheKey, response)
 
+        if (query.direct) {
+            const downloads = {} as any
+            let idx = 0
+            const total = Object.keys(response.downloads).length
+            for (const [sourceName, dls] of Object.entries(response.downloads)) {
+                idx++
+                const directs = {} as any
+                yield sse({
+                    event: "search-direct",
+                    data: {
+                        source: sourceName,
+                        sourceIdx: idx,
+                        total: total
+                    }
+                })
+                for (const [name, url] of Object.entries(dls as any)) {
+                    const direct = await DirectSolver.solve(url as string)
+                    if (direct) {
+                        directs[name] = direct
+                    }
+                }
+                if (Object.keys(directs).length > 0) {
+                    downloads[sourceName] = directs
+                }
+            }
+            yield sse({
+                event: "data",
+                data: { downloads }
+            })
+            return { downloads }
+        }
+
         yield sse({
             event: "data",
             data: response
@@ -248,6 +275,9 @@ export const searchRoute = new Elysia()
     }, {
         params: t.Object({
             id: t.Union([t.String(), t.Number()], {description: "Steam app id"}),
+        }),
+        query: t.Object({
+            direct: t.Optional(t.Boolean({description: "Only return direct links"})),
         }),
         detail: {
             tags: ["Game"],

@@ -18,19 +18,26 @@ export default class DirectSolver {
         const data = await NetworkRequest.get(url)
         const u = data.match(/(https:\/\/download\.megaup\.net[^']+)/gm)?.[0]
         if (!u) {
-            console.warn("Couldn't find download link in megaup page")
+            console.warn("Couldn't find download link in megaup page: " + url)
             return null
         }
         const data2 = await Solverr.fetch<string>(u)
         if (!data2) {
-            console.warn("Couldn't get megaup download page")
+            console.warn("Couldn't get megaup download page: " + u)
             return null
         }
-        const matches = data2.matchAll(/href="(https:\/\/[^\/]+\/download\/[^"]+)/gm)
+        let matches = data2.matchAll(/href="(https:\/\/[^\/]+\/download\/[^"]+)/gm)
+        let result = null
         for (const match of matches) {
-            return match[1]
+            result = match[1]
         }
-        return null
+        if (!result) {
+            matches = data2.matchAll(/'(https:\/\/[^?]+\?pt=[^']+)/gm)
+            for (const match of matches) {
+                result = match[1]
+            }
+        }
+        return result
     }
     static async buzzheavier(url: string) {
         const data = await axios.get(`${url}/download`, {
