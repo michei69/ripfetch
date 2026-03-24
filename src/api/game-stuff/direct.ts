@@ -14,7 +14,7 @@ export default class DirectSolver {
         // "pixeldrain", // i dont even want to think about it 
     ]
 
-    static async megaup(url: string) {
+    static async megaup(url: string, no_redirect: boolean) {
         const data = await NetworkRequest.get(url)
         const u = data.match(/(https:\/\/download\.megaup\.net[^']+)/gm)?.[0]
         if (!u) {
@@ -35,7 +35,7 @@ export default class DirectSolver {
             matches = data2.matchAll(/'(https:\/\/[^?]+\?pt=[^']+)/gm)
             for (const match of matches) {
                 // return proxied because those urls seem to be per ip? probably
-                result = `https://games.michei.dev/api/megaup/${match[1]?.split("/").pop()?.split("?").shift()}`   //match[1]
+                result = no_redirect ? match[1] : `https://games.michei.dev/api/megaup/${match[1]?.split("/").pop()?.split("?").shift()}`   //match[1]
             }
         }
         return result
@@ -48,9 +48,9 @@ export default class DirectSolver {
         })
         return data.headers["hx-redirect"]
     }
-    static async solve(url: string) {
+    static async solve(url: string, no_redirect = false) {
         if (url.includes("megaup.net")) {
-            return await this.megaup(url)
+            return await this.megaup(url, no_redirect)
         } else if (url.includes("buzzheavier.com")) {
             return await this.buzzheavier(url)
         }

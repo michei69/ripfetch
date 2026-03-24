@@ -327,7 +327,7 @@ export const searchRoute = new Elysia()
     })
     .get("/megaup/:id", async ({ params, set }) => {
         try {
-            const realUrl = await DirectSolver.solve(`https://megaup.net/${params.id}`);
+            const realUrl = await DirectSolver.solve(`https://megaup.net/${params.id}`, true);
             if (!realUrl) {
                 set.status = 404;
                 return { error: "Not found" };
