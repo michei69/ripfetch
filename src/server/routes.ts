@@ -10,6 +10,7 @@ import Steamunlocked from "../api/game-stuff/steamunlocked"
 import Uploadhaven from "../api/game-stuff/uploadhaven"
 import { getCache, setCache, setSearchCache, setLinksCache } from "./cache"
 import DirectSolver from "@/api/game-stuff/direct"
+import axios from "axios"
 
 const gameSources = [new Game3rb(), new Igg(), new Onlinefix(), new Steamrip(), new Steamunlocked()]
 
@@ -323,46 +324,6 @@ export const searchRoute = new Elysia()
             tags: ["Uploadhaven"],
             summary: "Proxy download from Uploadhaven",
             description: "Get real download URL from Uploadhaven and stream the file",
-        },
-    })
-    .get("/megaup/:id", async ({ params, set }) => {
-        try {
-            const realUrl = await DirectSolver.solve(`https://megaup.net/${params.id}`, true);
-            if (!realUrl) {
-                set.status = 404;
-                return { error: "Not found" };
-            }
-            const response = await fetch(realUrl);
-            if (!response.ok) {
-                set.status = response.status;
-                return { error: "Failed to fetch file" };
-            }
-            const headers = new Headers();
-            for (const [key, value] of response.headers.entries()) {
-                if (key.toLowerCase() === 'content-length') continue;
-                headers.set(key, value);
-            }
-            const contentDisposition = response.headers.get('content-disposition');
-            if (!contentDisposition) {
-                headers.set('Content-Disposition', `attachment; filename="${params.id}"`);
-            }
-            return new Response(response.body, {
-                headers,
-                status: response.status,
-            });
-        } catch (error) {
-            console.error("megaup proxy error:", error);
-            set.status = 502;
-            return { error: "Proxy error" };
-        }
-    }, {
-        params: t.Object({
-            id: t.String({description: "Megaup download id"}),
-        }),
-        detail: {
-            tags: ["Megaup"],
-            summary: "Proxy download from megaup",
-            description: "Get direct download from megaup and stream the file",
         },
     })
     .get("/direct", async ({ query, set }) => {

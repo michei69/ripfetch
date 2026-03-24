@@ -38,7 +38,10 @@ export default class DirectSolver {
                 result = no_redirect ? match[1] : `https://games.michei.dev/api/megaup/${match[1]?.split("/").pop()?.split("?").shift()}`   //match[1]
             }
         }
-        return result
+        return no_redirect ? {
+            "referer": u,
+            "url": result
+        } : result
     }
     static async buzzheavier(url: string) {
         const data = await axios.get(`${url}/download`, {
