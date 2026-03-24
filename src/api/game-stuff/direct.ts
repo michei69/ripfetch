@@ -34,7 +34,8 @@ export default class DirectSolver {
         if (!result) {
             matches = data2.matchAll(/'(https:\/\/[^?]+\?pt=[^']+)/gm)
             for (const match of matches) {
-                result = match[1]
+                // return proxied because those urls seem to be per ip? probably
+                result = `https://games.michei.dev/megaup/${match[1]?.split("/").pop()?.split("?").shift()}`   //match[1]
             }
         }
         return result
