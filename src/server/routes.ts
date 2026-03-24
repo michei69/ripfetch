@@ -148,10 +148,27 @@ export const searchRoute = new Elysia()
             description: "Get detailed game info from Steam",
         },
     })
-    .get("/game/:id/links", async ({ params }) => {
+    .get("/game/:id/links", async ({ params, query }) => {
         const cacheKey = `links:${params.id}`
         const cached = await getCache(cacheKey)
         if (cached !== null) {
+            if (query.direct) {
+                const downloads = {} as any
+                for (const [sourceName, dls] of Object.entries(cached.downloads)) {
+                    const directs = {} as any
+                    for (const [name, url] of Object.entries(dls as any)) {
+                        const direct = await DirectSolver.solve(url as string)
+                        if (direct) {
+                            directs[name] = direct
+                        }
+                    }
+                    if (Object.keys(directs).length > 0) {
+                        downloads[sourceName] = directs
+                    }
+                }
+                return { downloads }
+            }
+
             return cached
         }
         
@@ -163,11 +180,33 @@ export const searchRoute = new Elysia()
         }
         const downloads = await getDownloadsForGame(steamInfo.name)
         const response = { downloads }
+
+        if (query.direct) {
+            const downloads = {} as any
+            for (const [sourceName, dls] of Object.entries(response.downloads)) {
+                const directs = {} as any
+                for (const [name, url] of Object.entries(dls as any)) {
+                    const direct = await DirectSolver.solve(url as string)
+                    if (direct) {
+                        directs[name] = direct
+                    }
+                }
+                if (Object.keys(directs).length > 0) {
+                    downloads[sourceName] = directs
+                }
+            }
+            return { downloads }
+        }
+
         await setLinksCache(cacheKey, response)
+
         return response
     }, {
         params: t.Object({
             id: t.Union([t.String(), t.Number()], {description: "Steam app id"}),
+        }),
+        query: t.Object({
+            direct: t.Optional(t.Boolean({description: "Only return direct links"})),
         }),
         detail: {
             tags: ["Game"],
