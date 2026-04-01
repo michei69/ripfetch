@@ -121,7 +121,7 @@ export const searchRoute = new Elysia()
         }
     }, {
         query: t.Object({
-            q: t.String({description: "Search query"}),
+            q: t.String({description: "Search query", minLength: 2, maxLength: 200}),
         }),
         detail: {
             tags: ["Search"],
@@ -141,7 +141,7 @@ export const searchRoute = new Elysia()
         return response
     }, {
         params: t.Object({
-            id: t.Union([t.String(), t.Number()], {description: "Steam app id"}),
+            id: t.Union([t.String({ pattern: "^[0-9]+$" }), t.Number({minimum: 1})], {description: "Steam app id"}),
         }),
         detail: {
             tags: ["Game"],
@@ -169,7 +169,7 @@ export const searchRoute = new Elysia()
         return response
     }, {
         params: t.Object({
-            id: t.Union([t.String(), t.Number()], {description: "Steam app id"}),
+            id: t.Union([t.String({ pattern: "^[0-9]+$" }), t.Number({minimum: 1})], {description: "Steam app id"}),
         }),
         detail: {
             tags: ["Game"],
@@ -183,37 +183,37 @@ export const searchRoute = new Elysia()
         const cacheKey = `links:${params.id}`
         const cached = await getCache(cacheKey)
         if (cached !== null) {
-            if (query.direct) {
-                const downloads = {} as any
-                const total = Object.keys(cached.downloads).length
-                let idx = 0
-                for (const [sourceName, dls] of Object.entries(cached.downloads)) {
-                    idx++
-                    yield sse({
-                        event: "search-direct",
-                        data: {
-                            source: sourceName,
-                            sourceIdx: idx,
-                            total
-                        }
-                    })
-                    const directs = {} as any
-                    for (const [name, url] of Object.entries(dls as any)) {
-                        const direct = await DirectSolver.solve(url as string)
-                        if (direct) {
-                            directs[name] = direct
-                        }
-                    }
-                    if (Object.keys(directs).length > 0) {
-                        downloads[sourceName] = directs
-                    }
-                }
-                yield sse({
-                    event: "data",
-                    data: { downloads }
-                })
-                return { downloads }
-            }
+            // if (query.direct) {
+            //     const downloads = {} as any
+            //     const total = Object.keys(cached.downloads).length
+            //     let idx = 0
+            //     for (const [sourceName, dls] of Object.entries(cached.downloads)) {
+            //         idx++
+            //         yield sse({
+            //             event: "search-direct",
+            //             data: {
+            //                 source: sourceName,
+            //                 sourceIdx: idx,
+            //                 total
+            //             }
+            //         })
+            //         const directs = {} as any
+            //         for (const [name, url] of Object.entries(dls as any)) {
+            //             const direct = await DirectSolver.solve(url as string)
+            //             if (direct) {
+            //                 directs[name] = direct
+            //             }
+            //         }
+            //         if (Object.keys(directs).length > 0) {
+            //             downloads[sourceName] = directs
+            //         }
+            //     }
+            //     yield sse({
+            //         event: "data",
+            //         data: { downloads }
+            //     })
+            //     return { downloads }
+            // }
             yield sse({
                 event: "data",
                 data: cached
@@ -275,10 +275,10 @@ export const searchRoute = new Elysia()
         return response
     }, {
         params: t.Object({
-            id: t.Union([t.String(), t.Number()], {description: "Steam app id"}),
+            id: t.Union([t.String({ pattern: "^[0-9]+$" }), t.Number({minimum: 1})], {description: "Steam app id"}),
         }),
         query: t.Object({
-            direct: t.Optional(t.Boolean({description: "Only return direct links"})),
+            // direct: t.Optional(t.Boolean({description: "Only return direct links"})),
         }),
         detail: {
             tags: ["Game"],
