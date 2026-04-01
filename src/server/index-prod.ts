@@ -3,7 +3,7 @@ import { Elysia } from "elysia"
 import { swagger } from "@elysiajs/swagger"
 import { cors } from "@elysiajs/cors"
 import { readFileSync, existsSync, statSync } from "fs"
-import { join, extname } from "path"
+import { join, extname, resolve } from "path"
 import Steam from "../api/game-stuff/steam"
 import { ensureCacheTable, clearExpiredCache } from "./cache"
 import app from "./routes"
@@ -40,6 +40,10 @@ const mimeTypes: Record<string, string> = {
 
 function serveStatic(pathname: string): Response | undefined {
     let filePath = join(DIST_DIR, pathname)
+    const resolvedPath = resolve(filePath)
+    if (!resolvedPath.startsWith(resolve(DIST_DIR))) {
+        return undefined // or 403
+    }
 
     if (!existsSync(filePath) || statSync(filePath).isDirectory()) {
         filePath = join(DIST_DIR, pathname, "index.html")
