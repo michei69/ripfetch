@@ -326,33 +326,33 @@ export const searchRoute = new Elysia()
             description: "Get real download URL from Uploadhaven and stream the file",
         },
     })
-    .get("/direct", async ({ query, set }) => {
-        try {
-            if (!query.url.trim() || !query.url.startsWith("http")) {
-                set.status = 400
-                return { error: "Invalid URL" }
-            }
-            const solved = await DirectSolver.solve(query.url)
-            if (solved) {
-                set.status = 200
-                return { url: solved }
-            } else {
-                set.status = 500
-                return { error: "Not implemented" }
-            }
-        } catch (e) {
-            console.error(e)
-            set.status = 500
-            return { error: "Internal server error" }
-        }
-    }, {
-        query: t.Object({
-            url: t.String({description: "Original URL"}),
-        })
-    })
-    .get("/direct/available", () => {
-        return { available: DirectSolver.available }
-    })
+    // .get("/direct", async ({ query, set }) => {
+    //     try {
+    //         if (!query.url.trim() || !query.url.startsWith("http")) {
+    //             set.status = 400
+    //             return { error: "Invalid URL" }
+    //         }
+    //         const solved = await DirectSolver.solve(query.url)
+    //         if (solved) {
+    //             set.status = 200
+    //             return { url: solved }
+    //         } else {
+    //             set.status = 500
+    //             return { error: "Not implemented" }
+    //         }
+    //     } catch (e) {
+    //         console.error(e)
+    //         set.status = 500
+    //         return { error: "Internal server error" }
+    //     }
+    // }, {
+    //     query: t.Object({
+    //         url: t.String({description: "Original URL"}),
+    //     })
+    // })
+    // .get("/direct/available", () => {
+    //     return { available: DirectSolver.available }
+    // })
 
 export const app = new Elysia({ prefix: "/api" })
     .use(cors())
