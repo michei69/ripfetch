@@ -137,7 +137,7 @@ export const searchRoute = new Elysia()
         }
         const steamInfo = await Steam.getInfo(params.id)
         const response = { steam: steamInfo }
-        await setCache(cacheKey, response)
+        if (response.steam) await setCache(cacheKey, response)
         return response
     }, {
         params: t.Object({
@@ -159,12 +159,12 @@ export const searchRoute = new Elysia()
         const steamInfo = await Steam.getInfo(params.id)
         if (!steamInfo) {
             const response = { downloads: {} }
-            await setLinksCache(cacheKey, response)
+            // await setLinksCache(cacheKey, response)
             return response
         }
         const downloads = await getDownloadsForGame(steamInfo.name)
         const response = { downloads }
-        await setLinksCache(cacheKey, response)
+        if (response.downloads) await setLinksCache(cacheKey, response)
 
         return response
     }, {
@@ -224,7 +224,7 @@ export const searchRoute = new Elysia()
         const steamInfo = await Steam.getInfo(params.id)
         if (!steamInfo) {
             const response = { downloads: {} }
-            await setLinksCache(cacheKey, response)
+            // await setLinksCache(cacheKey, response)
 
             yield sse({
                 event: "data",
@@ -234,39 +234,39 @@ export const searchRoute = new Elysia()
         }
         const downloads = yield* getDownloadsForGameSSE(steamInfo.name, sse)
         const response = { downloads }
-        await setLinksCache(cacheKey, response)
+        if (response.downloads) await setLinksCache(cacheKey, response)
 
-        if (query.direct) {
-            const downloads = {} as any
-            let idx = 0
-            const total = Object.keys(response.downloads).length
-            for (const [sourceName, dls] of Object.entries(response.downloads)) {
-                idx++
-                const directs = {} as any
-                yield sse({
-                    event: "search-direct",
-                    data: {
-                        source: sourceName,
-                        sourceIdx: idx,
-                        total: total
-                    }
-                })
-                for (const [name, url] of Object.entries(dls as any)) {
-                    const direct = await DirectSolver.solve(url as string)
-                    if (direct) {
-                        directs[name] = direct
-                    }
-                }
-                if (Object.keys(directs).length > 0) {
-                    downloads[sourceName] = directs
-                }
-            }
-            yield sse({
-                event: "data",
-                data: { downloads }
-            })
-            return { downloads }
-        }
+        // if (query.direct) {
+        //     const downloads = {} as any
+        //     let idx = 0
+        //     const total = Object.keys(response.downloads).length
+        //     for (const [sourceName, dls] of Object.entries(response.downloads)) {
+        //         idx++
+        //         const directs = {} as any
+        //         yield sse({
+        //             event: "search-direct",
+        //             data: {
+        //                 source: sourceName,
+        //                 sourceIdx: idx,
+        //                 total: total
+        //             }
+        //         })
+        //         for (const [name, url] of Object.entries(dls as any)) {
+        //             const direct = await DirectSolver.solve(url as string)
+        //             if (direct) {
+        //                 directs[name] = direct
+        //             }
+        //         }
+        //         if (Object.keys(directs).length > 0) {
+        //             downloads[sourceName] = directs
+        //         }
+        //     }
+        //     yield sse({
+        //         event: "data",
+        //         data: { downloads }
+        //     })
+        //     return { downloads }
+        // }
 
         yield sse({
             event: "data",
