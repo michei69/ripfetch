@@ -1,8 +1,8 @@
 import "dotenv/config"
-import { Elysia } from "elysia"
+import { Elysia, file, ElysiaFile } from "elysia"
 import { cors } from "@elysiajs/cors"
 import { existsSync, statSync } from "fs"
-import { join, extname, resolve } from "path"
+import { join, resolve } from "path"
 import Steam from "../api/game-stuff/steam"
 import { ensureCacheTable, clearExpiredCache } from "./cache"
 import app from "./routes"
@@ -17,26 +17,7 @@ initialize().catch(console.error)
 
 const DIST_DIR = join(process.cwd(), "dist")
 
-const mimeTypes: Record<string, string> = {
-    ".html": "text/html",
-    ".js": "text/javascript",
-    ".css": "text/css",
-    ".json": "application/json",
-    ".png": "image/png",
-    ".jpg": "image/jpg",
-    ".jpeg": "image/jpeg",
-    ".gif": "image/gif",
-    ".svg": "image/svg+xml",
-    ".ico": "image/x-icon",
-    ".woff": "font/woff",
-    ".woff2": "font/woff2",
-    ".ttf": "font/ttf",
-    ".eot": "application/vnd.ms-fontobject",
-    ".otf": "font/otf",
-    ".webp": "image/webp",
-}
-
-function serveStatic(pathname: string): Response | undefined {
+function serveStatic(pathname: string): Response | undefined | ElysiaFile {
     let filePath = join(DIST_DIR, pathname)
     const resolvedPath = resolve(filePath)
     if (!resolvedPath.startsWith(resolve(DIST_DIR))) {
@@ -51,23 +32,13 @@ function serveStatic(pathname: string): Response | undefined {
         return undefined
     }
 
-    const ext = extname(filePath)
-    const contentType = mimeTypes[ext] || "application/octet-stream"
-
-    return new Response(Bun.file(filePath), {
-        headers: {
-            "Content-Type": contentType,
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "SAMEORIGIN",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-        },
-    })
+    return file(filePath)
 }
 
-// const allowedOrigin = process.env["HOSTNAME"] || process.env["DOMAIN"] || "*"
+const allowedOrigin = process.env["HOSTNAME"] || process.env["DOMAIN"] || "*"
 
 new Elysia()
-    // .use(cors({ origin: allowedOrigin }))
+    .use(cors({ origin: allowedOrigin }))
     .use(app)
     .get("/*", async ({ path }) => {
         if (path.startsWith("/api")) {
