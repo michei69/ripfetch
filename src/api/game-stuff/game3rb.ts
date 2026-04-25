@@ -6,7 +6,7 @@ export default class Game3rb implements IGameSource {
     displayName = "Game3RB";
 
     static async search(title: string): Promise<SearchResult[]> {
-        const req = await axios.get(`https://game3rb.com/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=100&search=${title}`)
+        const req = await axios.get(`https://game3rb.com/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=100&search=${encodeURIComponent(title)}`)
         const data = req.data
 
         const results: SearchResult[] = []

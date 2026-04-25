@@ -1,5 +1,4 @@
 import Elysia, { sse, t } from "elysia"
-import { swagger } from "@elysiajs/swagger"
 import { cors } from "@elysiajs/cors"
 import Steam from "../api/game-stuff/steam"
 import Game3rb from "../api/game-stuff/game3rb"
@@ -318,7 +317,7 @@ export const searchRoute = new Elysia()
         }
     }, {
         params: t.Object({
-            id: t.String({description: "Uploadhaven download id"}),
+            id: t.String({ pattern: "^[0-9a-fA-F]+$", description: "Uploadhaven download id (hex)" }),
         }),
         detail: {
             tags: ["Uploadhaven"],
@@ -356,15 +355,6 @@ export const searchRoute = new Elysia()
 
 export const app = new Elysia({ prefix: "/api" })
     .use(cors())
-    .use(swagger({
-        documentation: {
-            info: {
-                title: "RipFetch API",
-                version: "1.0.0",
-                description: "An API for searching games and fetching download links lol",
-            },
-        },
-    }))
     .use(searchRoute)
     .get("/health", () => ({ status: "ok" }))
 

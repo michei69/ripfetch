@@ -5,11 +5,11 @@ export default class Solverr {
     private static byparrInst: string | undefined = process.env["BYPARR_INST"]
 
     static async fetch<T>(url: string): Promise<T | undefined> {
-        if (!validateUrl(url)) return
+        if (!(await validateUrl(url))) return
         if (!this.byparrInst) {
             try {
                 const res = await axios.get(url)
-                if (!validateUrl(res.request?.requestURL)) return
+                if (!(await validateUrl(res.request?.requestURL))) return
                 return res.data as T
             } catch {
                 return
@@ -21,7 +21,7 @@ export default class Solverr {
                 "cmd": "request.get",
                 "url": url
             }) as AxiosResponse<ByparrResponse>
-            if (!validateUrl(res?.data?.solution.url ?? "")) return
+            if (!(await validateUrl(res?.data?.solution.url ?? ""))) return
             return res.data?.solution?.response as T
         } catch {
             return

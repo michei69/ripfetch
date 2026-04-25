@@ -1,8 +1,7 @@
 import "dotenv/config"
 import { Elysia } from "elysia"
-import { swagger } from "@elysiajs/swagger"
 import { cors } from "@elysiajs/cors"
-import { readFileSync, existsSync, statSync } from "fs"
+import { existsSync, statSync } from "fs"
 import { join, extname, resolve } from "path"
 import Steam from "../api/game-stuff/steam"
 import { ensureCacheTable, clearExpiredCache } from "./cache"
@@ -11,11 +10,10 @@ import app from "./routes"
 async function initialize() {
     await ensureCacheTable()
     await clearExpiredCache()
-    await Steam.refreshAlgolia()
+    await Steam.refreshAlgolia(true)
 }
 
 initialize().catch(console.error)
-Steam.refreshAlgolia()
 
 const DIST_DIR = join(process.cwd(), "dist")
 
@@ -42,7 +40,7 @@ function serveStatic(pathname: string): Response | undefined {
     let filePath = join(DIST_DIR, pathname)
     const resolvedPath = resolve(filePath)
     if (!resolvedPath.startsWith(resolve(DIST_DIR))) {
-        return undefined // or 403
+        return undefined
     }
 
     if (!existsSync(filePath) || statSync(filePath).isDirectory()) {
@@ -56,22 +54,20 @@ function serveStatic(pathname: string): Response | undefined {
     const ext = extname(filePath)
     const contentType = mimeTypes[ext] || "application/octet-stream"
 
-    return new Response(readFileSync(filePath), {
-        headers: { "Content-Type": contentType },
+    return new Response(Bun.file(filePath), {
+        headers: {
+            "Content-Type": contentType,
+            "X-Content-Type-Options": "nosniff",
+            "X-Frame-Options": "SAMEORIGIN",
+            "Referrer-Policy": "strict-origin-when-cross-origin",
+        },
     })
 }
 
+const allowedOrigin = process.env["HOSTNAME"] || process.env["DOMAIN"] || "*"
+
 new Elysia()
-    .use(cors())
-    .use(swagger({
-        documentation: {
-            info: {
-                title: "Games API",
-                version: "1.0.0",
-                description: "API for searching games and getting download links",
-            },
-        },
-    }))
+    .use(cors({ origin: allowedOrigin }))
     .use(app)
     .get("/*", async ({ path }) => {
         if (path.startsWith("/api")) {

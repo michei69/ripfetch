@@ -16,10 +16,9 @@ async function runCommand(body: Record<string, unknown>): Promise<ByparrResponse
     }
 }
 
-// Those are the only ones which actually use NetworkRequest, outside of direct.ts
 const ALLOWED_ORIGINS = [
     "igg-games.com",
-    "steamunlocked.net",
+    "steamunlocked.org",
     "steamdb.info",
     "game3rb.com"
 ]
@@ -51,7 +50,7 @@ export async function validateUrl(url: string): Promise<boolean> {
 
 export default class NetworkRequest {
     static async get(url: string): Promise<string> {
-        if (!validateUrl(url)) return ""
+        if (!(await validateUrl(url))) return ""
         const byparrInst = process.env["BYPARR_INST"]
 
         const req = await axios.get(url, { validateStatus: () => true })
@@ -63,14 +62,14 @@ export default class NetworkRequest {
                 "url": url
             })
             data = result?.solution?.response ?? ""
-            if (!validateUrl(result?.solution.url ?? "")) return ''
-        } else if (!validateUrl(req.request?.requestURL)) return ''
+            if (!(await validateUrl(result?.solution.url ?? ""))) return ''
+        } else if (!(await validateUrl(req.request?.requestURL))) return ''
         return data as string
     }
 
     // unused
     static async post(url: string, postdata: string): Promise<string> {
-        if (!validateUrl(url)) return ""
+        if (!(await validateUrl(url))) return ""
         const byparrInst = process.env["BYPARR_INST"]
 
         const req = await axios.post(url, postdata, { validateStatus: () => true })
@@ -83,8 +82,8 @@ export default class NetworkRequest {
                 "postData": postdata
             })
             data = result?.solution?.response ?? ""
-            if (!validateUrl(result?.solution.url ?? "")) return ''
-        } else if (!validateUrl(req.request?.requestURL)) return ''
+            if (!(await validateUrl(result?.solution.url ?? ""))) return ''
+        } else if (!(await validateUrl(req.request?.requestURL))) return ''
         return data as string
     }
 }

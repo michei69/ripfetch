@@ -124,7 +124,7 @@ export default function GamePage() {
 
   useEffect(() => {
     let isMounted = true
-    let eventSource: EventSource
+    let eventSource: EventSource | null = null
 
     const fetchSteamInfo = async () => {
       if (!id) return
@@ -170,7 +170,7 @@ export default function GamePage() {
         setProgress(0)
         eventSource = new EventSource(`${API_BASE_URL}/api/game/${gameId}/links/sse`)
         eventSource.addEventListener("data", (event) => {
-          eventSource.close()
+          eventSource?.close()
           const data = JSON.parse(event.data)
           setDownloads(data.downloads)
           setProgress(101)
@@ -179,20 +179,19 @@ export default function GamePage() {
         eventSource.addEventListener("search", (event) => {
           const data = JSON.parse(event.data)
           setProgress(data.sourceIdx / data.total * 100)
-          console.log("search", data)
         })
-        eventSource.onerror = (err) => {
-          console.error(err)
-          throw new Error("Failed to fetch download links")
+        eventSource.onerror = () => {
+          eventSource?.close()
+          if (isMounted) {
+            setErrorLinks("Failed to fetch download links")
+            setLoadingLinks(false)
+          }
         }
       } catch (err) {
         if (isMounted) {
           setErrorLinks(err instanceof Error ? err.message : "An error occurred")
+          setLoadingLinks(false)
         }
-      } finally {
-        // if (isMounted) {
-        //   setLoadingLinks(false)
-        // }
       }
     }
 
@@ -200,6 +199,7 @@ export default function GamePage() {
 
     return () => {
       isMounted = false
+      eventSource?.close()
     }
   }, [id])
 

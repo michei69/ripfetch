@@ -6,9 +6,9 @@ const searchResultRegex = /href="([^"]*)"><span[^>]*>([^<]*)/gm
 const downloadLinkRegex = /href="([^"]*)" class="btn btn-success btn-small">([^<]*)/gm
 const filenamePartRegex = /part([^.]+)/gm
 
+const textDecoder = new TextDecoder("iso-8859-1")
 const getAxiosData = (response: AxiosResponse): string => {
-    const decoder = new TextDecoder("iso-8859-1")
-    return decoder.decode(response.data)
+    return textDecoder.decode(response.data)
 }
 
 const getLoginCookie = (): string => {

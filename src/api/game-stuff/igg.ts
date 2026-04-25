@@ -72,7 +72,8 @@ export default class Igg implements IGameSource {
                 const link = await this.solveLink(match2[1] ?? "")
                 if (linkTitle.includes("part")) {
                     if (!results[host]) results[host] = {}
-                    if (link) results[host]![linkTitle] = link
+                    const hostLinks = results[host]
+                    if (hostLinks && link) hostLinks[linkTitle] = link
                 } else if (linkTitle.includes("torrent")) {
                     results["torrent"] = {
                         Magnet: link
