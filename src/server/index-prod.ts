@@ -64,10 +64,10 @@ function serveStatic(pathname: string): Response | undefined {
     })
 }
 
-const allowedOrigin = process.env["HOSTNAME"] || process.env["DOMAIN"] || "*"
+// const allowedOrigin = process.env["HOSTNAME"] || process.env["DOMAIN"] || "*"
 
 new Elysia()
-    .use(cors({ origin: allowedOrigin }))
+    // .use(cors({ origin: allowedOrigin }))
     .use(app)
     .get("/*", async ({ path }) => {
         if (path.startsWith("/api")) {
