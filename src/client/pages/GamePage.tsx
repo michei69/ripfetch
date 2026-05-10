@@ -482,10 +482,10 @@ export default function GamePage() {
                                   const domain = hostname(url)
 
                                   const handleLinkClick = (e: React.MouseEvent) => {
-                                    const dismissed = localStorage.getItem(`ripfetch_warning_dismissed_${domain}`)
-                                    if (dismissed === "true" || !WARNINGS[domain]) return
+                                    const dismissed = localStorage.getItem(`ripfetch_warning_dismissed_${source.toLowerCase()}`)
+                                    if (dismissed === "true" || !WARNINGS[source.toLowerCase()]) return
                                     e.preventDefault()
-                                    setPendingLink({ url, domain, source })
+                                    setPendingLink({ url, domain, source: source.toLowerCase() })
                                   }
 
                                   return (

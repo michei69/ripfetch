@@ -119,10 +119,6 @@ export default function SearchPage() {
       <div className="max-w-3xl mx-auto">
         {/* Hero */}
         <div className="text-center mb-10 md:mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Sparkles className="h-4 w-4" />
-            Game download aggregator
-          </div>
           <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tight">
             Find <span className="text-primary">Free Game Downloads</span>
           </h2>
@@ -136,7 +132,7 @@ export default function SearchPage() {
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/8 to-primary/4 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300" />
             <div className="relative flex items-center">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none z-10" />
               <input
                 ref={inputRef}
                 type="text"

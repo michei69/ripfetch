@@ -36,7 +36,7 @@ export function SourceWarningModal({
     if (!open && el.open) el.close()
   }, [open])
 
-  const warning = WARNINGS[domain]
+  const warning = WARNINGS[source]
 
   if (!open || !warning) return null
 
@@ -52,7 +52,7 @@ export function SourceWarningModal({
             <div className="h-10 w-10 rounded-full bg-yellow-500/15 flex items-center justify-center">
               <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
-            <h3 className="text-lg font-bold">{warning.title}</h3>
+            <h3 className="text-lg font-bold text-foreground">{warning.title}</h3>
           </div>
           <button
             onClick={onDismiss}
@@ -75,7 +75,7 @@ export function SourceWarningModal({
             <ExternalLink className="h-4 w-4" />
             Continue Anyway
           </Button>
-          <Button variant="outline" onClick={onDismiss}>
+          <Button variant="outline" className="text-foreground" onClick={onDismiss}>
             Go Back
           </Button>
         </div>
@@ -84,7 +84,7 @@ export function SourceWarningModal({
           onClick={onDismissPermanently}
           className="mt-4 w-full text-xs text-muted-foreground hover:text-foreground text-center transition-colors underline underline-offset-2"
         >
-          Don&apos;t show this warning for {domain} again
+          Don&apos;t show this warning for {source} again
         </button>
       </div>
     </dialog>

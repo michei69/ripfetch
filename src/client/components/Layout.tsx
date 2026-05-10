@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom"
-import { Gamepad2, Sparkles, Sun, Moon, Monitor } from "lucide-react"
+import { Link, useLocation } from "react-router-dom"
+import { Gamepad2, Sparkles, Sun, Moon, Monitor, ArrowLeft } from "lucide-react"
 import { useTheme, type Theme } from "./theme-provider"
 import { Button } from "./ui/button"
 
 export function Header() {
   const { theme, setTheme } = useTheme()
+  const location = useLocation()
   const cycleTheme = () => {
     const order: Theme[] = ["light", "dark", "system"]
     const idx = order.indexOf(theme)
@@ -26,6 +27,10 @@ export function Header() {
           to="/"
           className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
         >
+          {location.pathname !== "/" && <div className="flex items-center gap-1 hover:opacity-90 transition-opacity">
+          <ArrowLeft className="h-5 w-5 mt-0.5" />
+          Back to Search
+          </div>}
           <div className="relative">
             <Gamepad2 className="h-7 w-7 md:h-8 md:w-8 text-primary" />
             <Sparkles className="h-2.5 w-2.5 text-primary absolute -top-0.5 -right-0.5" />
