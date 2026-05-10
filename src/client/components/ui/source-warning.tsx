@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react"
-import { ExternalLink, AlertTriangle, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { ExternalLink, AlertTriangle, X, Copy, Check } from "lucide-react"
 import { Button } from "./button"
 
 interface SourceWarningModalProps {
@@ -11,12 +11,60 @@ interface SourceWarningModalProps {
   onDismissPermanently: () => void
 }
 
-const WARNINGS: Record<string, { title: string; body: string }> = {
+const CopyClickCode = ({ children }: { children: string }) => {
+  const [ work, setWork ] = useState(false)
+  const [ error, setError ] = useState(false)
+  
+  const timeout = useRef<NodeJS.Timeout|null>(null)
+  useEffect(() => {
+    if (work || error) {
+      if (timeout.current) clearTimeout(timeout.current)
+      timeout.current = setTimeout(() => {setWork(false); setError(false)}, 2000)
+    }
+    return () => {if (timeout.current) clearTimeout(timeout.current)}
+  }, [work, error])
+
+  return <code className={`cursor-pointer hover:brightness-75 inline-flex flex-row items-center ml-2 ${work ? "text-green-700 dark:text-green-300" : ""} ${error ? "text-destructive" : ""}`} onClick={async () => {
+    try {
+      await navigator.clipboard.writeText(children)
+      setWork(true)
+    } catch {
+      setError(true)
+    }
+  }}>{children} {!work && !error && <Copy className="w-3 h-3 mr-2 ml-1"/>}{work && <Check className="w-3 h-3 mr-2 ml-1"/>}{error && <X className="w-3 h-3 mr-2 ml-1"/>}</code>
+}
+
+const WARNINGS: Record<string, { title: string; body: any }> = {
   "online-fix.me": {
-    title: "Online-Fix.me requires an account",
+    title: "Online-Fix.me zips are password protected",
     body:
-      "This source may require you to sign in or create an account before downloading. Links may redirect through login pages.",
+      <>Use the password <CopyClickCode>online-fix.me</CopyClickCode> to decompress the zip files.</>,
   },
+  "ovagames": {
+    title: "OvaGames zips are password protected",
+    body:
+      <>Use the password <CopyClickCode>www.ovagames.com</CopyClickCode> to decompress the zip files.</>,
+  },
+  "igg": {
+    title: "Beware of Malware!",
+    body:
+      <>IGG Games (and its many clones) have been caught embedding their own DRM, crypto miners, etc. into their repacked games. Please be wary of any suspicious files. This source is still available here just in case there's no other one. Just be careful and have fun!</>
+  },
+  "steamunlocked": {
+    title: "Slow downloads",
+    body:
+      <>SteamUnlocked is notorious for limiting its download speeds severly. Not only that, but often times they directly reupload packs from IGG or other sources. This should be your last resort.</>
+  },
+  "dodirepacks": {
+    title: "Use an adblocker!",
+    body:
+      <>Please use <a href="https://www.firefox.com/" className="inline-flex flex-row items-center hover:brightness-75">Firefox <ExternalLink className="h-3 w-3 ml-1"/></a> + <a href="https://addons.mozilla.org/en-GB/firefox/addon/ublock-origin/" className="inline-flex flex-row items-center hover:brightness-75">uBlock Origin <ExternalLink className="h-3 w-3 ml-1"/></a> + <a href="https://violentmonkey.github.io/" className="inline-flex flex-row items-center hover:brightness-75">ViolentMonkey <ExternalLink className="h-3 w-3 ml-1"/></a> + <a href="https://codeberg.org/Amm0ni4/bypass-all-shortlinks-debloated" className="inline-flex flex-row items-center hover:brightness-75">bypass-all-shortlinks-debloated <ExternalLink className="h-3 w-3 ml-1"/></a>. Dodi's download links are shoved through layers of ad-powered redirects. Trust me, you don't want to go through them manually.</>
+  },
+  "game3rb": {
+    title: "Beware of Malware!",
+    body:
+      <>Game3rb sometimes embeds malicious links / ads into their webpage, which this scraper is unable to detect. Please make sure you're downloading from a legitimate file hoster. If you're unsure, try using other sources.</>
+  }
 }
 
 export function SourceWarningModal({
@@ -62,7 +110,7 @@ export function SourceWarningModal({
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+        <p className="text-sm text-muted-foreground leading-relaxed mb-6 inline">
           {warning.body}
         </p>
 

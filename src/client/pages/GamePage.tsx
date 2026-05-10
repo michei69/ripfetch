@@ -26,13 +26,14 @@ import { API_BASE_URL } from "../lib/config"
 // ─── constants ────────────────────────────────────────────────────────────
 
 const SOURCE_ORDER = [
-  "online-fix.me", "igg", "gogto", "gload", "steamrip",
-  "fitgirl", "ovagames", "dodi", "game3rb", "steamunlocked",
+  "online-fix.me", "gogto", "gload", "steamrip",
+  "fitgirl", "ovagames", "dodi", "game3rb", "igg", "steamunlocked",
 ]
 
 const TRUSTED_MARKERS = [
   "fuckingfast", "megaup", "gofile", "pixeldrain", "mega.nz",
   "vikingfile", "datanodes", "1fichier", "koramaup", "buzzheavier", "1cloudfile",
+  "fileq", "torrent"
 ]
 
 const SLOW_MARKERS = ["uploadhaven"]
@@ -50,7 +51,9 @@ const hostname = (url: string) => {
 }
 
 const matchesAny = (domain: string, markers: string[]) =>
-  markers.some((m) => domain.includes(m))
+  markers.some((m) => domain.toLowerCase().includes(m))
+const whichMatch = (domain: string, markers: string[]) =>
+  markers.findIndex((m) => domain.toLowerCase().includes(m))
 
 const parseSource = (key: string) => {
   const m = key.match(/^(.+?)\s*\((.+)\)$/)
@@ -98,7 +101,9 @@ const groupByDomain = (
       const bTrusted = matchesAny(b.domain, TRUSTED_MARKERS)
       if (aTrusted && !bTrusted) return -1
       if (!aTrusted && bTrusted) return 1
-      return a.domain.localeCompare(b.domain)
+      const aIdx = whichMatch(a.domain, TRUSTED_MARKERS)
+      const bIdx = whichMatch(b.domain, TRUSTED_MARKERS)
+      return aIdx === bIdx ? a.domain.localeCompare(b.domain) : aIdx - bIdx
     })
 }
 
