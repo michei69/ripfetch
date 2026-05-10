@@ -23,25 +23,25 @@ async function getDownloadsForGame(gameName: string): Promise<Record<string, Rec
 
     for (const source of gameSources) {
         try {
-            const results = await source.search(gameName)
+            const result = await source.getClosestTo(gameName)
+            if (!result) continue
 
             try {
-                for (const result of results) {
-                    const sourceName = `${source.displayName} (${result.title})`
-                    if (!downloads[sourceName]) {
-                        const dls = await source.getDownloads(result.url)
-                        if (Object.keys(dls).length > 0) {
-                            const flatDls: Record<string, string> = {}
-                            for (const [host, links] of Object.entries(dls)) {
-                                for (const [name, url] of Object.entries(links)) {
-                                    flatDls[`${host} - ${name}`] = url
-                                }
+                // for (const result of results) {
+                const sourceName = `${source.displayName} (${result.title})`
+                if (!downloads[sourceName]) {
+                    const dls = await source.getDownloads(result.url)
+                    if (Object.keys(dls).length > 0) {
+                        const flatDls: Record<string, string> = {}
+                        for (const [host, links] of Object.entries(dls)) {
+                            for (const [name, url] of Object.entries(links)) {
+                                flatDls[`${host} - ${name}`] = url
                             }
-                            downloads[sourceName] = flatDls
-                            break
                         }
+                        downloads[sourceName] = flatDls
                     }
                 }
+                // }
             } catch (error) {
                 console.error(`Error getting downloads from ${source.displayName}:`, error)
             }
