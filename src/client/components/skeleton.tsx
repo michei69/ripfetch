@@ -1,60 +1,43 @@
 import { cn } from "../lib/utils"
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
-  className?: string
-}
-
-export function Skeleton({ className, ...props }: SkeletonProps) {
+export function Skeleton({ className }: { className?: string }) {
   return (
-    <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
-      {...props}
-    />
-  )
-}
-
-export function GameCardSkeleton() {
-  return (
-    <div className="border rounded-lg p-6 space-y-4">
-      <div className="flex items-start gap-4">
-        <Skeleton className="h-32 w-24 rounded-lg" />
-        <div className="flex-1 space-y-3">
-          <Skeleton className="h-6 w-3/4" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-2/3" />
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Skeleton className="h-6 w-16 rounded-full" />
-            <Skeleton className="h-6 w-20 rounded-full" />
-            <Skeleton className="h-6 w-14 rounded-full" />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export function DownloadLinkSkeleton() {
-  return (
-    <div className="border rounded-lg p-4 space-y-3">
-      <Skeleton className="h-5 w-32" />
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-4/5" />
-        <Skeleton className="h-4 w-3/4" />
-      </div>
-    </div>
+    <div className={cn("animate-pulse rounded-lg bg-muted/60", className)} />
   )
 }
 
 export function SearchResultSkeleton() {
   return (
-    <div className="space-y-2">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3 p-3">
-          <Skeleton className="h-5 w-5 rounded" />
+    <div className="px-4 py-3 space-y-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-8 w-12 rounded" />
           <Skeleton className="h-4 flex-1" />
         </div>
       ))}
+    </div>
+  )
+}
+
+export function GamePageSkeleton() {
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+      <Skeleton className="h-48 md:h-64 w-full rounded-2xl" />
+      <div className="space-y-3">
+        <Skeleton className="h-8 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+      </div>
+      <div className="flex gap-2">
+        <Skeleton className="h-7 w-16 rounded-full" />
+        <Skeleton className="h-7 w-20 rounded-full" />
+        <Skeleton className="h-7 w-14 rounded-full" />
+      </div>
+      <div className="pt-4 space-y-3">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+      </div>
     </div>
   )
 }
