@@ -15,6 +15,7 @@ import FitGirl from "../api/game-stuff/fitgirl"
 import { getCache, setCache, setSearchCache, setLinksCache } from "./cache"
 import DirectSolver from "@/api/game-stuff/direct"
 import axios from "axios"
+import { AsyncQueue } from "./util"
 
 const gameSources = [new Game3rb(), new Igg(), new Onlinefix(), new Steamrip(), new Steamunlocked(), new OvaGames(), new GOGto(), new GLoad(), new Dodi(), new FitGirl()]
 
@@ -237,7 +238,41 @@ export const searchRoute = new Elysia()
             })
             return response
         }
-        const downloads = yield* getDownloadsForGameSSE(steamInfo.name, sse)
+
+        const q = new AsyncQueue<any>()
+        const int = setInterval(() => {
+            q.push(sse({
+                event: "ping",
+                data: { timestamp: new Date().getTime() }
+            }))
+        }, 5000);
+
+        let done = false;
+        const generator = getDownloadsForGameSSE(steamInfo.name, sse);
+
+        let downloads;
+        (async () => {
+            while (true) {
+                const { value, done } = await generator.next()
+                if (done) {
+                    downloads = value
+                    break;
+                }
+                q.push(value)
+            }
+            done = true;
+        })();
+
+        while (!done) {
+            const { value, done } = await q.next()
+            if (done) {
+                await new Promise(resolve => setTimeout(resolve, 500))
+                continue;
+            }
+            yield value
+        }
+
+        clearInterval(int)
         const response = { downloads }
         if (response.downloads) await setLinksCache(cacheKey, response)
 
