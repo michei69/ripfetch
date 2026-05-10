@@ -18,6 +18,7 @@ import { Badge } from "../components/ui/badge"
 import { Card } from "../components/ui/card"
 import { Progress } from "../components/ui/progress"
 import { useToast } from "../components/ui/toast"
+import { SourceWarningModal, WARNINGS } from "../components/ui/source-warning"
 import { GamePageSkeleton } from "../components/skeleton"
 import { cn } from "../lib/utils"
 import { API_BASE_URL } from "../lib/config"
@@ -127,6 +128,7 @@ export default function GamePage() {
   const [progress, setProgress] = useState(0)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [pendingLink, setPendingLink] = useState<{ url: string; domain: string; source: string } | null>(null)
 
   // ── data fetching ──────────────────────────────────────────────────────
 
@@ -267,7 +269,7 @@ export default function GamePage() {
                   alt=""
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/70 to-card/50" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/90 to-card/75" />
               </div>
             )}
             <div className="relative p-6 md:p-8">
@@ -477,6 +479,14 @@ export default function GamePage() {
                                 {items.map(({ label, url }) => {
                                   const uid = `${sourceKey}::${label}`
                                   const isCopied = copiedId === uid
+                                  const domain = hostname(url)
+
+                                  const handleLinkClick = (e: React.MouseEvent) => {
+                                    const dismissed = localStorage.getItem(`ripfetch_warning_dismissed_${domain}`)
+                                    if (dismissed === "true" || !WARNINGS[domain]) return
+                                    e.preventDefault()
+                                    setPendingLink({ url, domain, source })
+                                  }
 
                                   return (
                                     <div
@@ -487,6 +497,7 @@ export default function GamePage() {
                                         href={url}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        onClick={handleLinkClick}
                                         className="flex items-center gap-2.5 min-w-0 flex-1"
                                       >
                                         <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
@@ -495,7 +506,7 @@ export default function GamePage() {
                                             {label}
                                           </p>
                                           <p className="text-xs text-muted-foreground truncate">
-                                            {hostname(url)}
+                                            {domain}
                                           </p>
                                         </div>
                                       </a>
@@ -526,6 +537,24 @@ export default function GamePage() {
           )}
         </div>
       </div>
+
+      <SourceWarningModal
+        open={pendingLink !== null}
+        source={pendingLink?.source ?? ""}
+        domain={pendingLink?.domain ?? ""}
+        onConfirm={() => {
+          if (pendingLink) window.open(pendingLink.url, "_blank", "noopener noreferrer")
+          setPendingLink(null)
+        }}
+        onDismiss={() => setPendingLink(null)}
+        onDismissPermanently={() => {
+          if (pendingLink) {
+            localStorage.setItem(`ripfetch_warning_dismissed_${pendingLink.domain}`, "true")
+            window.open(pendingLink.url, "_blank", "noopener noreferrer")
+          }
+          setPendingLink(null)
+        }}
+      />
     </section>
   )
 }

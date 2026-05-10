@@ -1,13 +1,10 @@
-import { Link, useLocation } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { Gamepad2, Sparkles, Sun, Moon, Monitor } from "lucide-react"
 import { useTheme, type Theme } from "./theme-provider"
 import { Button } from "./ui/button"
 
 export function Header() {
   const { theme, setTheme } = useTheme()
-  const location = useLocation()
-  const isHome = location.pathname === "/"
-
   const cycleTheme = () => {
     const order: Theme[] = ["light", "dark", "system"]
     const idx = order.indexOf(theme)
@@ -38,25 +35,15 @@ export function Header() {
           </h1>
         </Link>
 
-        <div className="flex items-center gap-2">
-          {!isHome && (
-            <Link
-              to="/"
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              Search
-            </Link>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={cycleTheme}
-            aria-label={`Theme: ${theme}`}
-            className="text-muted-foreground"
-          >
-            {themeIcon}
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={cycleTheme}
+          aria-label={`Theme: ${theme}`}
+          className="text-muted-foreground"
+        >
+          {themeIcon}
+        </Button>
       </div>
     </header>
   )
