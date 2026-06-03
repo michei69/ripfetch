@@ -15,7 +15,7 @@ async function initialize() {
 
 initialize().catch(console.error);
 
-const DIST_DIR = resolve(import.meta.dirname, "..", "client", "dist");
+const DIST_DIR = resolve(import.meta.dirname, "..", "..", "client", "dist");
 
 function serveStatic(pathname: string): Response | undefined | ElysiaFile {
     let filePath = join(DIST_DIR, pathname);
