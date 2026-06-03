@@ -1,39 +1,33 @@
-import axios, { AxiosResponse } from "axios";
-import { ByparrResponse, validateUrl } from "./game-stuff/networkRequest";
+import axios, { type AxiosResponse } from "axios";
+import { type ByparrResponse, validateUrl } from "./game-stuff/NetworkRequest";
+import { getFirstMatch } from "@/util";
 
-export default class Solverr {
-    private static byparrInst: string | undefined = process.env["BYPARR_INST"]
+const byparrInst = process.env.BYPARR_INST;
 
-    static async fetch<T>(url: string): Promise<T | undefined> {
-        if (!(await validateUrl(url))) return
-        if (!this.byparrInst) {
+export default {
+    async fetch<T>(url: string): Promise<T | undefined> {
+        if (!(await validateUrl(url))) return;
+        if (!byparrInst) {
             try {
-                const res = await axios.get(url)
-                if (!(await validateUrl(res.request?.requestURL))) return
-                return res.data as T
-            } catch {
-                return
-            }
+                const res = await axios.get(url);
+                if (!(await validateUrl(res.request?.requestURL))) return;
+                return res.data as T;
+            } catch {}
+            return;
         }
-        
-        try {
-            const res = await axios.post(`${this.byparrInst}/v1`, {
-                "cmd": "request.get",
-                "url": url
-            }) as AxiosResponse<ByparrResponse>
-            if (!(await validateUrl(res?.data?.solution.url ?? ""))) return
-            return res.data?.solution?.response as T
-        } catch {
-            return
-        }
-    }
 
-    static getActualJson<T>(html: string): T {
-        if (!html) return [] as T
-        let a;
-        for (const match of html.matchAll(/<pre>(.*)<\/pre>/gm)) {
-            a = match[1]
-        }
-        return JSON.parse(a ?? "[]")
-    }
-}
+        try {
+            const res = (await axios.post(`${byparrInst}/v1`, {
+                cmd: "request.get",
+                url: url,
+            })) as AxiosResponse<ByparrResponse>;
+            if (!(await validateUrl(res?.data?.solution.url ?? ""))) return;
+            return res.data?.solution?.response as T;
+        } catch {}
+    },
+    getActualJson<T>(html: string): T {
+        if (!html) return [] as T;
+        const actualJson = getFirstMatch(html, /<pre>(.*)<\/pre>/gm)?.[1]
+        return JSON.parse(actualJson ?? "[]");
+    },
+};

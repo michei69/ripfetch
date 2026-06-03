@@ -22,7 +22,8 @@
 		"rules": {
 			"recommended": true,
 			"suspicious": {
-				"noExplicitAny": "off"
+				"noExplicitAny": "off",
+				"noUnknownAtRules": "off"
 			},
 			"style": {
 				"noNonNullAssertion": "off"
@@ -44,6 +45,12 @@
 				"formatter": {
 					"indentWidth": 2
 				}
+			}
+		},
+		{
+			"includes": ["packages/server/src/routes.ts"],
+			"formatter": {
+				"enabled": false
 			}
 		}
 	],

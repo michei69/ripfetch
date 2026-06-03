@@ -1,118 +1,120 @@
-import { useState, useEffect, useCallback, useRef } from "react"
-import { useNavigate } from "react-router-dom"
-import { Search, Download, Globe, Sparkles, X } from "lucide-react"
-import { useDebounce } from "../hooks/useDebounce"
-import { useClickOutside } from "../hooks/useClickOutside"
-import { cn } from "../lib/utils"
-import { API_BASE_URL } from "../lib/config"
-import { SearchResultSkeleton } from "../components/skeleton"
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, Download, Globe, Sparkles, X } from "lucide-react";
+import { useDebounce } from "../hooks/useDebounce";
+import { useClickOutside } from "../hooks/useClickOutside";
+import { cn } from "../lib/utils";
+import { API_BASE_URL } from "../lib/config";
+import { SearchResultSkeleton } from "../components/skeleton";
 
 interface SearchResult {
-  name: string
-  objectID: string
-  id: number
-  small_capsule?: string
+  name: string;
+  objectID: string;
+  id: number;
+  small_capsule?: string;
 }
 
 const capsuleUrl = (id: number, capsule?: string) =>
-  `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}${capsule ? "/" + capsule : ""}/capsule_231x87.jpg`
+  `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}${capsule ? `/${capsule}` : ""}/capsule_231x87.jpg`;
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("")
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [selectedIdx, setSelectedIdx] = useState(-1)
-  const [error, setError] = useState<string | null>(null)
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedIdx, setSelectedIdx] = useState(-1);
+  const [error, setError] = useState<string | null>(null);
 
-  const navigate = useNavigate()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const debouncedQuery = useDebounce(query, 300)
+  const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const debouncedQuery = useDebounce(query, 300);
 
-  useClickOutside(dropdownRef, () => setShowDropdown(false), showDropdown)
+  useClickOutside(dropdownRef, () => setShowDropdown(false), showDropdown);
 
   const searchGames = useCallback(async (q: string) => {
     if (!q.trim()) {
-      setResults([])
-      setError(null)
-      return
+      setResults([]);
+      setError(null);
+      return;
     }
 
-    setIsLoading(true)
-    setError(null)
-    setSelectedIdx(-1)
+    setIsLoading(true);
+    setError(null);
+    setSelectedIdx(-1);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/search?q=${encodeURIComponent(q)}`)
-      if (!res.ok) throw new Error(`Search failed (${res.status})`)
-      const data: SearchResult[] = await res.json()
-      setResults(data)
+      const res = await fetch(
+        `${API_BASE_URL}/api/search?q=${encodeURIComponent(q)}`,
+      );
+      if (!res.ok) throw new Error(`Search failed (${res.status})`);
+      const data: SearchResult[] = await res.json();
+      setResults(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Search failed")
-      setResults([])
+      setError(err instanceof Error ? err.message : "Search failed");
+      setResults([]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (debouncedQuery.length >= 2) {
-      searchGames(debouncedQuery)
-      setShowDropdown(true)
+      searchGames(debouncedQuery);
+      setShowDropdown(true);
     } else {
-      setResults([])
-      setError(null)
-      setShowDropdown(false)
+      setResults([]);
+      setError(null);
+      setShowDropdown(false);
     }
-  }, [debouncedQuery, searchGames])
+  }, [debouncedQuery, searchGames]);
 
   // re-focus input on dropdown open
   useEffect(() => {
     if (showDropdown && inputRef.current) {
       // don't steal focus from the input itself
     }
-  }, [showDropdown])
+  }, [showDropdown]);
 
   const handleSelect = (result: SearchResult) => {
-    setQuery(result.name)
-    setShowDropdown(false)
-    navigate(`/game/${result.id}`)
-  }
+    setQuery(result.name);
+    setShowDropdown(false);
+    navigate(`/game/${result.id}`);
+  };
 
   const handleClear = () => {
-    setQuery("")
-    setResults([])
-    setShowDropdown(false)
-    setError(null)
-    inputRef.current?.focus()
-  }
+    setQuery("");
+    setResults([]);
+    setShowDropdown(false);
+    setError(null);
+    inputRef.current?.focus();
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showDropdown || results.length === 0) return
+    if (!showDropdown || results.length === 0) return;
 
     switch (e.key) {
       case "ArrowDown":
-        e.preventDefault()
-        setSelectedIdx((prev) => (prev < results.length - 1 ? prev + 1 : 0))
-        break
+        e.preventDefault();
+        setSelectedIdx((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+        break;
       case "ArrowUp":
-        e.preventDefault()
-        setSelectedIdx((prev) => (prev > 0 ? prev - 1 : results.length - 1))
-        break
+        e.preventDefault();
+        setSelectedIdx((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+        break;
       case "Enter":
-        e.preventDefault()
+        e.preventDefault();
         if (selectedIdx >= 0 && selectedIdx < results.length) {
-          const result = results[selectedIdx]
-          if (result) handleSelect(result)
+          const result = results[selectedIdx];
+          if (result) handleSelect(result);
         }
-        break
+        break;
       case "Escape":
-        setShowDropdown(false)
-        inputRef.current?.blur()
-        break
+        setShowDropdown(false);
+        inputRef.current?.blur();
+        break;
     }
-  }
+  };
 
   return (
     <section className="container mx-auto px-4 pt-16 pb-12 md:pt-24 md:pb-16">
@@ -140,16 +142,16 @@ export default function SearchPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => {
-                  if (results.length > 0 || isLoading) setShowDropdown(true)
+                  if (results.length > 0 || isLoading) setShowDropdown(true);
                 }}
                 onKeyDown={handleKeyDown}
                 className="w-full h-14 pl-14 pr-14 rounded-xl border-2 border-input/50 bg-background/80 backdrop-blur-sm text-base md:text-lg focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all"
                 aria-label="Search for games"
                 autoComplete="off"
-                autoFocus
               />
               {query && (
                 <button
+                  type="reset"
                   onClick={handleClear}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
                   aria-label="Clear search"
@@ -169,14 +171,17 @@ export default function SearchPage() {
                 ) : error ? (
                   <div className="p-8 text-center">
                     <Globe className="h-10 w-10 text-destructive mx-auto mb-3 opacity-50" />
-                    <p className="text-destructive font-medium mb-1">Search failed</p>
+                    <p className="text-destructive font-medium mb-1">
+                      Search failed
+                    </p>
                     <p className="text-sm text-muted-foreground">{error}</p>
                   </div>
                 ) : results.length > 0 ? (
                   <>
                     <div className="px-4 py-2.5 border-b bg-accent/40">
                       <p className="text-xs font-medium text-muted-foreground">
-                        {results.length} game{results.length !== 1 ? "s" : ""} found
+                        {results.length} game{results.length !== 1 ? "s" : ""}{" "}
+                        found
                       </p>
                     </div>
                     <div
@@ -184,9 +189,10 @@ export default function SearchPage() {
                       role="listbox"
                     >
                       {results.map((result, idx) => {
-                        const isSelected = idx === selectedIdx
+                        const isSelected = idx === selectedIdx;
                         return (
                           <button
+                            type="button"
                             key={result.objectID}
                             onClick={() => handleSelect(result)}
                             onMouseEnter={() => setSelectedIdx(idx)}
@@ -194,9 +200,7 @@ export default function SearchPage() {
                             aria-selected={isSelected}
                             className={cn(
                               "w-full px-4 py-3 text-left flex items-center gap-3 transition-colors border-b last:border-0",
-                              isSelected
-                                ? "bg-accent"
-                                : "hover:bg-accent/60"
+                              isSelected ? "bg-accent" : "hover:bg-accent/60",
                             )}
                           >
                             <img
@@ -205,7 +209,8 @@ export default function SearchPage() {
                               className="h-9 w-auto rounded flex-shrink-0 bg-muted"
                               loading="lazy"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = "none"
+                                (e.target as HTMLImageElement).style.display =
+                                  "none";
                               }}
                             />
                             <div className="flex-1 min-w-0">
@@ -218,7 +223,7 @@ export default function SearchPage() {
                             </div>
                             <Download className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           </button>
-                        )
+                        );
                       })}
                     </div>
                   </>
@@ -263,11 +268,13 @@ export default function SearchPage() {
                 <Icon className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold mb-1 text-sm">{title}</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">{desc}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {desc}
+              </p>
             </div>
           ))}
         </div>
       </div>
     </section>
-  )
+  );
 }

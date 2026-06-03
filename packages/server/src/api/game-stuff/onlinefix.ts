@@ -1,26 +1,23 @@
-import axios, { AxiosResponse } from "axios";
-import { DownloadsResult, genericClosestTo, IGameSource, SearchResult } from "./commonData";
-import Fuse from "fuse.js";
+import axios, { type AxiosResponse } from "axios";
+import { type DownloadsResult, genericClosestTo, type IGameSource, type SearchResult } from "./commonData";
+import { getFirstMatch } from "@/util";
 
 const searchResultRegex = /href="([^"]*)"><span[^>]*>([^<]*)/gm
 const downloadLinkRegex = /href="([^"]*)" class="btn btn-success btn-small">([^<]*)/gm
 const filenamePartRegex = /part([^.]+)/gm
 
-const textDecoder = new TextDecoder("iso-8859-1")
+const textDecoder = new TextDecoder("windows-1252")
 const getAxiosData = (response: AxiosResponse): string => {
     return textDecoder.decode(response.data)
 }
 
 const getLoginCookie = (): string => {
-    return `dle_user_id=${process.env["ONLINEFIX_DLE_USER_ID"]}; dle_password=${process.env["ONLINEFIX_DLE_PASSWORD"]};`
+    return `dle_user_id=${process.env.ONLINEFIX_DLE_USER_ID}; dle_password=${process.env.ONLINEFIX_DLE_PASSWORD};`
 }
 
 const getFileName = (filename: string): string => {
-    var part = ""
-    for (const match of filename.matchAll(filenamePartRegex)) {
-        part = match[1] ?? ""
-    }
-    return part != "" ? "Part " + part : filename
+    const part = getFirstMatch(filename, filenamePartRegex)?.[1]
+    return part !== "" ? `Part ${part}` : filename
 }
 
 
@@ -55,15 +52,15 @@ export default class Onlinefix implements IGameSource {
     }
 
     static async getClosestTo(query: string): Promise<SearchResult | null> {
-        const results = await this.search(query)
+        const results = await Onlinefix.search(query)
         if (results.length === 0) return null
         return genericClosestTo(results, ["title"], query) || null
     }
 
     static async getDownloadsOfClosestTo(query: string): Promise<DownloadsResult | null> {
-        const game = await this.getClosestTo(query)
+        const game = await Onlinefix.getClosestTo(query)
         if (!game) return null
-        return await this.getDownloads(game.url)
+        return await Onlinefix.getDownloads(game.url)
     }
 
     private static async processLink(url: string): Promise<DownloadsResult> {
@@ -105,7 +102,7 @@ export default class Onlinefix implements IGameSource {
         const results: DownloadsResult = {}
         for (const match of data.matchAll(downloadLinkRegex)) {
             if ((match[1] ?? "").includes("donation")) continue
-            const processed = await this.processLink(match[1] ?? "")
+            const processed = await Onlinefix.processLink(match[1] ?? "")
             for (const [host, links] of Object.entries(processed)) {
                 if (!results[host]) results[host] = {}
                 for (const [name, link] of Object.entries(links)) {

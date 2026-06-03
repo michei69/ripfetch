@@ -1,53 +1,56 @@
-import "dotenv/config"
-import { Elysia, file, ElysiaFile } from "elysia"
-import { cors } from "@elysiajs/cors"
-import { existsSync, statSync } from "fs"
-import { join, resolve } from "path"
-import Steam from "./api/game-stuff/steam"
-import { ensureCacheTable, clearExpiredCache } from "./cache"
-import app from "./routes"
+import "dotenv/config";
+import { Elysia, file, type ElysiaFile } from "elysia";
+import { cors } from "@elysiajs/cors";
+import { existsSync, statSync } from "node:fs";
+import { join, resolve } from "node:path";
+import Steam from "./api/game-stuff/Steam";
+import { ensureCacheTable, clearExpiredCache } from "./cache";
+import app from "./routes";
 
 async function initialize() {
-    await ensureCacheTable()
-    await clearExpiredCache()
-    await Steam.refreshAlgolia(true)
+    await ensureCacheTable();
+    await clearExpiredCache();
+    await Steam.refreshAlgolia(true);
 }
 
-initialize().catch(console.error)
+initialize().catch(console.error);
 
-const DIST_DIR = resolve(import.meta.dirname, "..", "client", "dist")
+const DIST_DIR = resolve(import.meta.dirname, "..", "client", "dist");
 
 function serveStatic(pathname: string): Response | undefined | ElysiaFile {
-    let filePath = join(DIST_DIR, pathname)
-    const resolvedPath = resolve(filePath)
+    let filePath = join(DIST_DIR, pathname);
+    const resolvedPath = resolve(filePath);
     if (!resolvedPath.startsWith(resolve(DIST_DIR))) {
-        return undefined
+        return undefined;
     }
 
     if (!existsSync(filePath) || statSync(filePath).isDirectory()) {
-        filePath = join(DIST_DIR, pathname, "index.html")
+        filePath = join(DIST_DIR, pathname, "index.html");
     }
 
     if (!existsSync(filePath)) {
-        return undefined
+        return undefined;
     }
 
-    return file(filePath)
+    return file(filePath);
 }
 
-const allowedOrigin = process.env["HOSTNAME"] || process.env["DOMAIN"] || "*"
+const allowedOrigin = process.env.HOSTNAME || process.env.DOMAIN || "*";
 
 new Elysia()
     .use(cors({ origin: allowedOrigin }))
     .use(app)
     .get("/*", async ({ path }) => {
         if (path.startsWith("/api")) {
-            return new Response("Not found", { status: 404 })
+            return new Response("Not found", { status: 404 });
         }
-        const response = serveStatic(path)
-        if (response) return response
-        return serveStatic("index.html") || new Response("Not found", { status: 404 })
+        const response = serveStatic(path);
+        if (response) return response;
+        return (
+            serveStatic("index.html") ||
+            new Response("Not found", { status: 404 })
+        );
     })
-    .listen(parseInt(process.env["PORT"] || "3000"), ({ port }) => {
-        console.log(`Server is running at http://localhost:${port}`)
-    })
+    .listen(parseInt(process.env.PORT || "3000", 10), ({ port }) => {
+        console.log(`Server is running at http://localhost:${port}`);
+    });

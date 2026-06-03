@@ -1,23 +1,32 @@
 import Elysia, { sse, t } from "elysia"
 import { cors } from "@elysiajs/cors"
-import Steam from "./api/game-stuff/steam"
+import Steam from "./api/game-stuff/Steam"
 import Game3rb from "./api/game-stuff/game3rb"
 import Igg from "./api/game-stuff/igg"
 import Onlinefix from "./api/game-stuff/onlinefix"
 import Steamrip from "./api/game-stuff/steamrip"
 import Steamunlocked from "./api/game-stuff/steamunlocked"
-import Uploadhaven from "./api/game-stuff/uploadhaven"
+import Uploadhaven from "./api/game-stuff/Uploadhaven"
 import OvaGames from "./api/game-stuff/ovagames"
 import GOGto from "./api/game-stuff/gogto"
 import GLoad from "./api/game-stuff/gload"
 import Dodi from "./api/game-stuff/dodi"
 import FitGirl from "./api/game-stuff/fitgirl"
 import { getCache, setCache, setSearchCache, setLinksCache } from "./cache"
-import DirectSolver from "./api/game-stuff/direct"
-import axios from "axios"
 import { AsyncQueue } from "./util"
 
-const gameSources = [new Game3rb(), new Igg(), new Onlinefix(), new Steamrip(), new Steamunlocked(), new OvaGames(), new GOGto(), new GLoad(), new Dodi(), new FitGirl()]
+const gameSources = [
+    new Game3rb(), 
+    new Igg(), 
+    new Onlinefix(), 
+    new Steamrip(), 
+    new Steamunlocked(), 
+    new OvaGames(), 
+    new GOGto(), 
+    new GLoad(), 
+    new Dodi(), 
+    new FitGirl()
+]
 
 async function getDownloadsForGame(gameName: string): Promise<Record<string, Record<string, string>>> {
     const downloads: Record<string, Record<string, string>> = {}
@@ -108,7 +117,7 @@ export const searchRoute = new Elysia()
         }
 
         try {
-            let results = await Steam.search(query.q)
+            const results = await Steam.search(query.q)
             await setSearchCache(cacheKey, results)
             return results
         } catch (error) {
@@ -243,14 +252,14 @@ export const searchRoute = new Elysia()
         const int = setInterval(() => {
             q.push(sse({
                 event: "ping",
-                data: { timestamp: new Date().getTime() }
+                data: { timestamp: Date.now()}
             }))
         }, 5000);
 
         let done = false;
         const generator = getDownloadsForGameSSE(steamInfo.name, sse);
 
-        let downloads;
+        let downloads: any;
         (async () => {
             while (true) {
                 const { value, done } = await generator.next()

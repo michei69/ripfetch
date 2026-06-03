@@ -1,22 +1,23 @@
-import { cn } from "../lib/utils"
+import { cn } from "../lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
   return (
     <div className={cn("animate-pulse rounded-lg bg-muted/60", className)} />
-  )
+  );
 }
 
 export function SearchResultSkeleton() {
   return (
     <div className="px-4 py-3 space-y-3">
       {Array.from({ length: 4 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: skeleton
         <div key={i} className="flex items-center gap-3">
           <Skeleton className="h-8 w-12 rounded" />
           <Skeleton className="h-4 flex-1" />
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 export function GamePageSkeleton() {
@@ -39,5 +40,5 @@ export function GamePageSkeleton() {
         <Skeleton className="h-24 w-full rounded-xl" />
       </div>
     </div>
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useEffect, useState, useCallback } from "react";
+import { useParams, Link } from "react-router-dom";
 import {
   ExternalLink,
   Download,
@@ -12,213 +12,245 @@ import {
   AlertCircle,
   ArrowLeft,
   Gamepad2,
-} from "lucide-react"
-import { Button } from "../components/ui/button"
-import { Badge } from "../components/ui/badge"
-import { Card } from "../components/ui/card"
-import { Progress } from "../components/ui/progress"
-import { useToast } from "../components/ui/toast"
-import { SourceWarningModal, WARNINGS } from "../components/ui/source-warning"
-import { GamePageSkeleton } from "../components/skeleton"
-import { cn } from "../lib/utils"
-import { API_BASE_URL } from "../lib/config"
+  LoaderIcon,
+} from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Card } from "../components/ui/card";
+import { Progress } from "../components/ui/progress";
+import { useToast } from "../components/ui/toast";
+import { SourceWarningModal, WARNINGS } from "../components/ui/source-warning";
+import { GamePageSkeleton } from "../components/skeleton";
+import { cn } from "../lib/utils";
+import { API_BASE_URL } from "../lib/config";
 
 // ─── constants ────────────────────────────────────────────────────────────
 
 const SOURCE_ORDER = [
-  "online-fix.me", "gogto", "gload", "steamrip",
-  "fitgirl", "ovagames", "dodi", "game3rb", "igg", "steamunlocked",
-]
+  "online-fix.me",
+  "gogto",
+  "gload",
+  "steamrip",
+  "fitgirl",
+  "ovagames",
+  "dodi",
+  "game3rb",
+  "igg",
+  "steamunlocked",
+];
 
 const TRUSTED_MARKERS = [
-  "fuckingfast", "megaup", "gofile", "pixeldrain", "mega.nz",
-  "vikingfile", "datanodes", "1fichier", "koramaup", "buzzheavier", "1cloudfile",
-  "fileq", "torrent"
-]
+  "fuckingfast",
+  "megaup",
+  "gofile",
+  "pixeldrain",
+  "mega.nz",
+  "vikingfile",
+  "datanodes",
+  "1fichier",
+  "koramaup",
+  "buzzheavier",
+  "1cloudfile",
+  "fileq",
+  "torrent",
+];
 
-const SLOW_MARKERS = ["uploadhaven"]
+const SLOW_MARKERS = ["uploadhaven"];
 
-const PROXY_MARKERS = ["uploadhaven"]
+const PROXY_MARKERS = ["uploadhaven"];
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
 const hostname = (url: string) => {
   try {
-    return new URL(url).hostname.replace("www.", "")
+    return new URL(url).hostname.replace("www.", "");
   } catch {
-    return url.length > 30 ? url.slice(0, 30) + "…" : url
+    return url.length > 30 ? `${url.slice(0, 30)}…` : url;
   }
-}
+};
 
 const matchesAny = (domain: string, markers: string[]) =>
-  markers.some((m) => domain.toLowerCase().includes(m))
+  markers.some((m) => domain.toLowerCase().includes(m));
 const whichMatch = (domain: string, markers: string[]) =>
-  markers.findIndex((m) => domain.toLowerCase().includes(m))
+  markers.findIndex((m) => domain.toLowerCase().includes(m));
 
 const parseSource = (key: string) => {
-  const m = key.match(/^(.+?)\s*\((.+)\)$/)
+  const m = key.match(/^(.+?)\s*\((.+)\)$/);
   return m
     ? { source: m[1]!.trim(), title: m[2]!.trim() }
-    : { source: key, title: null }
-}
+    : { source: key, title: null };
+};
 
 const groupByDomain = (
-  links: Record<string, string>
+  links: Record<string, string>,
 ): Array<{ domain: string; items: Array<{ label: string; url: string }> }> => {
-  const map = new Map<string, Array<{ label: string; url: string }>>()
+  const map = new Map<string, Array<{ label: string; url: string }>>();
 
   for (const [key, url] of Object.entries(links)) {
-    const sep = key.indexOf(" - ")
-    const domain = sep !== -1 ? key.slice(0, sep) : "Other"
-    const label = sep !== -1 ? key.slice(sep + 3) : key
+    const sep = key.indexOf(" - ");
+    const domain = sep !== -1 ? key.slice(0, sep) : "Other";
+    const label = sep !== -1 ? key.slice(sep + 3) : key;
 
-    if (!map.has(domain)) map.set(domain, [])
-    map.get(domain)!.push({ label, url })
+    if (!map.has(domain)) map.set(domain, []);
+    map.get(domain)!.push({ label, url });
   }
 
   return Array.from(map.entries())
     .map(([domain, items]) => ({
       domain,
       items: items.sort((a, b) => {
-        const numRe = /(\d+)/g
-        const aParts = a.label.split(numRe)
-        const bParts = b.label.split(numRe)
+        const numRe = /(\d+)/g;
+        const aParts = a.label.split(numRe);
+        const bParts = b.label.split(numRe);
         for (let i = 0; i < Math.min(aParts.length, bParts.length); i++) {
           if (i % 2 === 0) {
-            const c = aParts[i]!.toLowerCase().localeCompare(bParts[i]!.toLowerCase())
-            if (c !== 0) return c
+            const c = aParts[i]!.toLowerCase().localeCompare(
+              bParts[i]!.toLowerCase(),
+            );
+            if (c !== 0) return c;
           } else {
-            const an = parseInt(aParts[i]!, 10) || 0
-            const bn = parseInt(bParts[i]!, 10) || 0
-            if (an !== bn) return an - bn
+            const an = parseInt(aParts[i]!, 10) || 0;
+            const bn = parseInt(bParts[i]!, 10) || 0;
+            if (an !== bn) return an - bn;
           }
         }
-        return aParts.length - bParts.length
+        return aParts.length - bParts.length;
       }),
     }))
     .sort((a, b) => {
-      const aTrusted = matchesAny(a.domain, TRUSTED_MARKERS)
-      const bTrusted = matchesAny(b.domain, TRUSTED_MARKERS)
-      if (aTrusted && !bTrusted) return -1
-      if (!aTrusted && bTrusted) return 1
-      const aIdx = whichMatch(a.domain, TRUSTED_MARKERS)
-      const bIdx = whichMatch(b.domain, TRUSTED_MARKERS)
-      return aIdx === bIdx ? a.domain.localeCompare(b.domain) : aIdx - bIdx
-    })
-}
+      const aTrusted = matchesAny(a.domain, TRUSTED_MARKERS);
+      const bTrusted = matchesAny(b.domain, TRUSTED_MARKERS);
+      if (aTrusted && !bTrusted) return -1;
+      if (!aTrusted && bTrusted) return 1;
+      const aIdx = whichMatch(a.domain, TRUSTED_MARKERS);
+      const bIdx = whichMatch(b.domain, TRUSTED_MARKERS);
+      return aIdx === bIdx ? a.domain.localeCompare(b.domain) : aIdx - bIdx;
+    });
+};
 
 // ─── types ─────────────────────────────────────────────────────────────────
 
 interface SteamInfo {
-  name: string
-  header_image: string
-  short_description: string
-  developers: string[]
-  publishers: string[]
-  genres: Array<{ id: number; description: string }>
-  price_overview?: { initial_formatted: string; final_formatted: string }
-  is_free: boolean
+  name: string;
+  header_image: string;
+  short_description: string;
+  developers: string[];
+  publishers: string[];
+  genres: Array<{ id: number; description: string }>;
+  price_overview?: { initial_formatted: string; final_formatted: string };
+  is_free: boolean;
 }
 
 // ─── component ─────────────────────────────────────────────────────────────
 
 export default function GamePage() {
-  const { id } = useParams<{ id: string }>()
-  const { toast } = useToast()
+  const { id } = useParams<{ id: string }>();
+  const { toast } = useToast();
 
-  const [steam, setSteam] = useState<SteamInfo | null>(null)
-  const [downloads, setDownloads] = useState<Record<string, Record<string, string>>>({})
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [progress, setProgress] = useState(0)
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [pendingLink, setPendingLink] = useState<{ url: string; domain: string; source: string } | null>(null)
+  const [steam, setSteam] = useState<SteamInfo | null>(null);
+  const [downloads, setDownloads] = useState<
+    Record<string, Record<string, string>>
+  >({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [pendingLink, setPendingLink] = useState<{
+    url: string;
+    domain: string;
+    source: string;
+  } | null>(null);
 
   // ── data fetching ──────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
-    if (!id) return
-    setLoading(true)
-    setError(null)
-    setSteam(null)
-    setDownloads({})
-    setProgress(0)
-    setCollapsed(new Set())
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    setSteam(null);
+    setDownloads({});
+    setProgress(0);
+    setCollapsed(new Set());
 
     try {
       // Fetch steam info + start SSE simultaneously
       const [steamRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/game/${id}`),
-      ])
+      ]);
 
       if (!steamRes.ok) {
-        const text = await steamRes.text().catch(() => "")
-        throw new Error(text || `Failed to load game (${steamRes.status})`)
+        const text = await steamRes.text().catch(() => "");
+        throw new Error(text || `Failed to load game (${steamRes.status})`);
       }
 
-      const data = await steamRes.json()
-      setSteam(data.steam)
+      const data = await steamRes.json();
+      setSteam(data.steam);
 
       // Kick off SSE for download links
       if (data.steam) {
-        const es = new EventSource(`${API_BASE_URL}/api/game/${id}/links/sse`)
+        const es = new EventSource(`${API_BASE_URL}/api/game/${id}/links/sse`);
 
         es.addEventListener("data", (event) => {
-          const d = JSON.parse(event.data) as { downloads: typeof downloads }
-          setDownloads(d.downloads)
-          setProgress(100)
-          es.close()
-        })
+          const d = JSON.parse(event.data) as { downloads: typeof downloads };
+          setDownloads(d.downloads);
+          setProgress(100);
+          es.close();
+        });
 
         es.addEventListener("search", (event) => {
-          const d = JSON.parse(event.data) as { sourceIdx: number; total: number }
-          setProgress((d.sourceIdx / d.total) * 100)
-        })
+          const d = JSON.parse(event.data) as {
+            sourceIdx: number;
+            total: number;
+          };
+          setProgress((d.sourceIdx / d.total) * 100);
+        });
 
         es.onerror = () => {
-          es.close()
-          setError("Failed to fetch download links. The search sources may be unavailable.")
-        }
+          es.close();
+          setError(
+            "Failed to fetch download links. The search sources may be unavailable.",
+          );
+        };
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong")
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [id])
+  }, [id]);
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchData();
+  }, [fetchData]);
 
   // ── copy handler ──────────────────────────────────────────────────────
 
   const copyLink = async (url: string, id: string) => {
     try {
-      await navigator.clipboard.writeText(url)
-      setCopiedId(id)
-      toast("Link copied to clipboard", "success")
-      setTimeout(() => setCopiedId(null), 2000)
+      await navigator.clipboard.writeText(url);
+      setCopiedId(id);
+      toast("Link copied to clipboard", "success");
+      setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      toast("Failed to copy link", "error")
+      toast("Failed to copy link", "error");
     }
-  }
+  };
 
   const toggleCollapse = (key: string) => {
     setCollapsed((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  }
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   // ── render ────────────────────────────────────────────────────────────
 
   // Loading
   if (loading && !steam) {
-    return <GamePageSkeleton />
+    return <GamePageSkeleton />;
   }
 
   // Error with no data
@@ -229,7 +261,9 @@ export default function GamePage() {
           <div className="h-14 w-14 bg-destructive/15 rounded-full flex items-center justify-center mx-auto mb-5">
             <AlertCircle className="h-7 w-7 text-destructive" />
           </div>
-          <h2 className="text-xl font-bold text-destructive mb-2">Failed to Load Game</h2>
+          <h2 className="text-xl font-bold text-destructive mb-2">
+            Failed to Load Game
+          </h2>
           <p className="text-muted-foreground mb-6 text-sm">{error}</p>
           <div className="flex items-center justify-center gap-3">
             <Button variant="outline" onClick={fetchData}>
@@ -245,21 +279,21 @@ export default function GamePage() {
           </div>
         </div>
       </section>
-    )
+    );
   }
 
-  if (!steam) return null
+  if (!steam) return null;
 
   const sourceEntries = Object.entries(downloads).sort(([a], [b]) => {
-    const sa = parseSource(a).source.toLowerCase()
-    const sb = parseSource(b).source.toLowerCase()
-    const ia = SOURCE_ORDER.indexOf(sa)
-    const ib = SOURCE_ORDER.indexOf(sb)
-    if (ia === -1 && ib === -1) return sa.localeCompare(sb)
-    if (ia === -1) return 1
-    if (ib === -1) return -1
-    return ia - ib
-  })
+    const sa = parseSource(a).source.toLowerCase();
+    const sb = parseSource(b).source.toLowerCase();
+    const ia = SOURCE_ORDER.indexOf(sa);
+    const ib = SOURCE_ORDER.indexOf(sb);
+    if (ia === -1 && ib === -1) return sa.localeCompare(sb);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
 
   return (
     <section className="container mx-auto px-4 py-6 md:py-8">
@@ -313,12 +347,12 @@ export default function GamePage() {
                   )}
 
                   <div className="flex flex-wrap gap-1.5 mb-4">
-                    <Badge
-                      variant={steam.is_free ? "success" : "default"}
-                    >
+                    <Badge variant={steam.is_free ? "success" : "default"}>
                       {steam.is_free
                         ? "Free"
-                        : steam.price_overview?.final_formatted || steam.price_overview?.initial_formatted || "N/A"}
+                        : steam.price_overview?.final_formatted ||
+                          steam.price_overview?.initial_formatted ||
+                          "N/A"}
                     </Badge>
                     {steam.genres?.map((g) => (
                       <Badge key={g.id} variant="secondary">
@@ -332,14 +366,18 @@ export default function GamePage() {
                       <div className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Dev:</span>
-                        <span className="font-medium">{steam.developers.join(", ")}</span>
+                        <span className="font-medium">
+                          {steam.developers.join(", ")}
+                        </span>
                       </div>
                     )}
                     {steam.publishers?.length > 0 && (
                       <div className="flex items-center gap-2">
                         <Globe className="h-4 w-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Pub:</span>
-                        <span className="font-medium">{steam.publishers.join(", ")}</span>
+                        <span className="font-medium">
+                          {steam.publishers.join(", ")}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -359,7 +397,8 @@ export default function GamePage() {
               <div>
                 <h3 className="text-lg font-bold">Download Links</h3>
                 <p className="text-xs text-muted-foreground">
-                  {Object.keys(downloads).length} source{Object.keys(downloads).length !== 1 ? "s" : ""}
+                  {Object.keys(downloads).length} source
+                  {Object.keys(downloads).length !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
@@ -367,29 +406,35 @@ export default function GamePage() {
               value={progress}
               className={cn(
                 "w-32 md:w-48 transition-opacity",
-                progress <= 0 || progress >= 100 ? "opacity-0" : "opacity-100"
+                progress <= 0 || progress >= 100 ? "opacity-0" : "opacity-100",
               )}
             />
           </div>
 
           {/* No downloads yet — loading */}
-          {progress > 0 && progress < 100 && Object.keys(downloads).length === 0 && (
-            <Card className="p-10 text-center">
-              <div className="flex flex-col items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                  <LoaderIcon />
+          {progress > 0 &&
+            progress < 100 &&
+            Object.keys(downloads).length === 0 && (
+              <Card className="p-10 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                    <LoaderIcon />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Searching sources for download links...
+                  </p>
+                  <Progress value={progress} className="w-48" />
                 </div>
-                <p className="text-sm text-muted-foreground">Searching sources for download links...</p>
-                <Progress value={progress} className="w-48" />
-              </div>
-            </Card>
-          )}
+              </Card>
+            )}
 
           {/* Error after steam loaded */}
           {error && steam && (
             <Card className="p-6 text-center">
               <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-3" />
-              <p className="text-sm font-medium text-destructive mb-1">Couldn't load downloads</p>
+              <p className="text-sm font-medium text-destructive mb-1">
+                Couldn't load downloads
+              </p>
               <p className="text-xs text-muted-foreground mb-4">{error}</p>
               <Button variant="outline" size="sm" onClick={fetchData}>
                 <RefreshCw className="h-4 w-4" />
@@ -399,35 +444,38 @@ export default function GamePage() {
           )}
 
           {/* Empty */}
-          {!error && Object.keys(downloads).length === 0 && progress === 100 && (
-            <Card className="p-10 text-center">
-              <Gamepad2 className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No Downloads Available</p>
-              <p className="text-xs text-muted-foreground mt-1 mb-5">
-                Couldn't find any download links for this game.
-              </p>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/">
-                  <ArrowLeft className="h-4 w-4" />
-                  Search for Another Game
-                </Link>
-              </Button>
-            </Card>
-          )}
+          {!error &&
+            Object.keys(downloads).length === 0 &&
+            progress === 100 && (
+              <Card className="p-10 text-center">
+                <Gamepad2 className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No Downloads Available</p>
+                <p className="text-xs text-muted-foreground mt-1 mb-5">
+                  Couldn't find any download links for this game.
+                </p>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/">
+                    <ArrowLeft className="h-4 w-4" />
+                    Search for Another Game
+                  </Link>
+                </Button>
+              </Card>
+            )}
 
           {/* Results */}
           {sourceEntries.length > 0 && (
             <div className="space-y-3">
               {sourceEntries.map(([sourceKey, links]) => {
-                const { source, title } = parseSource(sourceKey)
-                const isCollapsed = collapsed.has(sourceKey)
-                const groups = groupByDomain(links)
-                const linkCount = Object.keys(links).length
+                const { source, title } = parseSource(sourceKey);
+                const isCollapsed = collapsed.has(sourceKey);
+                const groups = groupByDomain(links);
+                const linkCount = Object.keys(links).length;
 
                 return (
                   <Card key={sourceKey} className="overflow-hidden">
                     {/* Source header */}
                     <button
+                      type="button"
                       onClick={() => toggleCollapse(sourceKey)}
                       className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-accent/30 transition-colors text-left"
                     >
@@ -453,7 +501,7 @@ export default function GamePage() {
                       <ChevronDown
                         className={cn(
                           "h-5 w-5 text-muted-foreground transition-transform duration-200",
-                          !isCollapsed && "rotate-180"
+                          !isCollapsed && "rotate-180",
                         )}
                       />
                     </button>
@@ -462,36 +510,57 @@ export default function GamePage() {
                     {!isCollapsed && (
                       <div className="px-4 md:px-5 pb-4 md:pb-5 space-y-4">
                         {groups.map(({ domain, items }) => {
-                          const isTrusted = matchesAny(domain, TRUSTED_MARKERS)
-                          const isSlow = matchesAny(domain, SLOW_MARKERS)
-                          const isProxied = matchesAny(domain, PROXY_MARKERS)
+                          const isTrusted = matchesAny(domain, TRUSTED_MARKERS);
+                          const isSlow = matchesAny(domain, SLOW_MARKERS);
+                          const isProxied = matchesAny(domain, PROXY_MARKERS);
 
                           return (
                             <div key={domain}>
                               <div className="flex items-center gap-2 mb-2.5">
                                 <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-semibold">{domain}</span>
+                                <span className="text-sm font-semibold">
+                                  {domain}
+                                </span>
                                 <div className="flex gap-1">
-                                  {isTrusted && <Badge variant="success">Recommended</Badge>}
-                                  {isSlow && <Badge variant="warning">Slow</Badge>}
-                                  {isProxied && <Badge variant="info">Proxied</Badge>}
+                                  {isTrusted && (
+                                    <Badge variant="success">Recommended</Badge>
+                                  )}
+                                  {isSlow && (
+                                    <Badge variant="warning">Slow</Badge>
+                                  )}
+                                  {isProxied && (
+                                    <Badge variant="info">Proxied</Badge>
+                                  )}
                                 </div>
                                 <span className="ml-auto text-xs text-muted-foreground">
-                                  {items.length} link{items.length !== 1 ? "s" : ""}
+                                  {items.length} link
+                                  {items.length !== 1 ? "s" : ""}
                                 </span>
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {items.map(({ label, url }) => {
-                                  const uid = `${sourceKey}::${label}`
-                                  const isCopied = copiedId === uid
-                                  const domain = hostname(url)
+                                  const uid = `${sourceKey}::${label}`;
+                                  const isCopied = copiedId === uid;
+                                  const domain = hostname(url);
 
-                                  const handleLinkClick = (e: React.MouseEvent) => {
-                                    const dismissed = localStorage.getItem(`ripfetch_warning_dismissed_${source.toLowerCase()}`)
-                                    if (dismissed === "true" || !WARNINGS[source.toLowerCase()]) return
-                                    e.preventDefault()
-                                    setPendingLink({ url, domain, source: source.toLowerCase() })
-                                  }
+                                  const handleLinkClick = (
+                                    e: React.MouseEvent,
+                                  ) => {
+                                    const dismissed = localStorage.getItem(
+                                      `ripfetch_warning_dismissed_${source.toLowerCase()}`,
+                                    );
+                                    if (
+                                      dismissed === "true" ||
+                                      !WARNINGS[source.toLowerCase()]
+                                    )
+                                      return;
+                                    e.preventDefault();
+                                    setPendingLink({
+                                      url,
+                                      domain,
+                                      source: source.toLowerCase(),
+                                    });
+                                  };
 
                                   return (
                                     <div
@@ -516,6 +585,7 @@ export default function GamePage() {
                                         </div>
                                       </a>
                                       <button
+                                        type="button"
                                         onClick={() => copyLink(url, uid)}
                                         className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all"
                                         aria-label="Copy link"
@@ -527,16 +597,16 @@ export default function GamePage() {
                                         )}
                                       </button>
                                     </div>
-                                  )
+                                  );
                                 })}
                               </div>
                             </div>
-                          )
+                          );
                         })}
                       </div>
                     )}
                   </Card>
-                )
+                );
               })}
             </div>
           )}
@@ -548,36 +618,22 @@ export default function GamePage() {
         source={pendingLink?.source ?? ""}
         domain={pendingLink?.domain ?? ""}
         onConfirm={() => {
-          if (pendingLink) window.open(pendingLink.url, "_blank", "noopener noreferrer")
-          setPendingLink(null)
+          if (pendingLink)
+            window.open(pendingLink.url, "_blank", "noopener noreferrer");
+          setPendingLink(null);
         }}
         onDismiss={() => setPendingLink(null)}
         onDismissPermanently={() => {
           if (pendingLink) {
-            localStorage.setItem(`ripfetch_warning_dismissed_${pendingLink.domain}`, "true")
-            window.open(pendingLink.url, "_blank", "noopener noreferrer")
+            localStorage.setItem(
+              `ripfetch_warning_dismissed_${pendingLink.domain}`,
+              "true",
+            );
+            window.open(pendingLink.url, "_blank", "noopener noreferrer");
           }
-          setPendingLink(null)
+          setPendingLink(null);
         }}
       />
     </section>
-  )
-}
-
-function LoaderIcon() {
-  return (
-    <svg
-      className="animate-spin h-5 w-5 text-muted-foreground"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  )
+  );
 }
