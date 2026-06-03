@@ -7,15 +7,17 @@ import {
   Monitor,
   ArrowLeft,
 } from "lucide-react";
-import { useTheme, type Theme } from "./theme-provider";
+import { useTheme } from "next-themes";
 import { Button } from "./ui/button";
+
+type Theme = "dark" | "light" | "system";
 
 export function Header() {
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const cycleTheme = () => {
     const order: Theme[] = ["light", "dark", "system"];
-    const idx = order.indexOf(theme);
+    const idx = order.indexOf((theme as Theme) ?? "system");
     setTheme(order[(idx + 1) % 3] ?? "system");
   };
 

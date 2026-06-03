@@ -18,7 +18,7 @@ import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Card } from "../components/ui/card";
 import { Progress } from "../components/ui/progress";
-import { useToast } from "../components/ui/toast";
+import { toast } from "react-toastify";
 import { SourceWarningModal, WARNINGS } from "../components/ui/source-warning";
 import { GamePageSkeleton } from "../components/skeleton";
 import { cn } from "../lib/utils";
@@ -145,8 +145,6 @@ interface SteamInfo {
 
 export default function GamePage() {
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
-
   const [steam, setSteam] = useState<SteamInfo | null>(null);
   const [downloads, setDownloads] = useState<
     Record<string, Record<string, string>>
@@ -174,10 +172,7 @@ export default function GamePage() {
     setCollapsed(new Set());
 
     try {
-      // Fetch steam info + start SSE simultaneously
-      const [steamRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/game/${id}`),
-      ]);
+      const steamRes = await fetch(`${API_BASE_URL}/api/game/${id}`);
 
       if (!steamRes.ok) {
         const text = await steamRes.text().catch(() => "");
@@ -187,7 +182,6 @@ export default function GamePage() {
       const data = await steamRes.json();
       setSteam(data.steam);
 
-      // Kick off SSE for download links
       if (data.steam) {
         const es = new EventSource(`${API_BASE_URL}/api/game/${id}/links/sse`);
 
@@ -207,6 +201,9 @@ export default function GamePage() {
         });
 
         es.onerror = () => {
+          // readyState CLOSED means close() was called normally
+          // after receiving data — don't overwrite with an error.
+          if (es.readyState === EventSource.CLOSED) return;
           es.close();
           setError(
             "Failed to fetch download links. The search sources may be unavailable.",
@@ -230,10 +227,10 @@ export default function GamePage() {
     try {
       await navigator.clipboard.writeText(url);
       setCopiedId(id);
-      toast("Link copied to clipboard", "success");
+      toast.success("Link copied to clipboard");
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
-      toast("Failed to copy link", "error");
+      toast.error("Failed to copy link");
     }
   };
 
@@ -626,7 +623,7 @@ export default function GamePage() {
         onDismissPermanently={() => {
           if (pendingLink) {
             localStorage.setItem(
-              `ripfetch_warning_dismissed_${pendingLink.domain}`,
+              `ripfetch_warning_dismissed_${pendingLink.source}`,
               "true",
             );
             window.open(pendingLink.url, "_blank", "noopener noreferrer");

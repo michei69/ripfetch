@@ -69,13 +69,6 @@ export default function SearchPage() {
     }
   }, [debouncedQuery, searchGames]);
 
-  // re-focus input on dropdown open
-  useEffect(() => {
-    if (showDropdown && inputRef.current) {
-      // don't steal focus from the input itself
-    }
-  }, [showDropdown]);
-
   const handleSelect = (result: SearchResult) => {
     setQuery(result.name);
     setShowDropdown(false);

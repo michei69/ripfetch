@@ -1,3 +1,4 @@
-const isDev = import.meta.env.VITE_DEV === 'true'
-
-export const API_BASE_URL = isDev ? 'http://127.0.0.1:3000' : ''
+// API calls use relative URLs. In dev, Vite's proxy rewrites
+// /api → localhost:3111. In production, the server serves both
+// the API and static files from the same origin.
+export const API_BASE_URL = "";
