@@ -12,7 +12,7 @@ import {
   AlertCircle,
   ArrowLeft,
   Gamepad2,
-  LoaderIcon,
+  Loader2Icon,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -415,7 +415,7 @@ export default function GamePage() {
               <Card className="p-10 text-center">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                    <LoaderIcon />
+                    <Loader2Icon className="animate-spin" />
                   </div>
                   <p className="text-sm text-muted-foreground">
                     Searching sources for download links...
