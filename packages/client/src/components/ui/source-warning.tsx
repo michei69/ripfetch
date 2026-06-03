@@ -15,7 +15,7 @@ const CopyClickCode = ({ children }: { children: string }) => {
   const [ work, setWork ] = useState(false)
   const [ error, setError ] = useState(false)
   
-  const timeout = useRef<NodeJS.Timeout|null>(null)
+  const timeout = useRef<ReturnType<typeof setTimeout>|null>(null)
   useEffect(() => {
     if (work || error) {
       if (timeout.current) clearTimeout(timeout.current)

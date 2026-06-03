@@ -3,7 +3,7 @@ import { Elysia, file, ElysiaFile } from "elysia"
 import { cors } from "@elysiajs/cors"
 import { existsSync, statSync } from "fs"
 import { join, resolve } from "path"
-import Steam from "../api/game-stuff/steam"
+import Steam from "./api/game-stuff/steam"
 import { ensureCacheTable, clearExpiredCache } from "./cache"
 import app from "./routes"
 
@@ -15,7 +15,7 @@ async function initialize() {
 
 initialize().catch(console.error)
 
-const DIST_DIR = join(process.cwd(), "dist")
+const DIST_DIR = resolve(import.meta.dirname, "..", "client", "dist")
 
 function serveStatic(pathname: string): Response | undefined | ElysiaFile {
     let filePath = join(DIST_DIR, pathname)

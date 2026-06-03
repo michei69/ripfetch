@@ -1,7 +1,7 @@
 import axios from "axios";
 import { SteamInfo, SteamSearchResult } from "./commonData";
 import Solverr from "../flaresolverr";
-import { getCache, setCache } from "../../server/cache";
+import { getCache, setCache } from "../../cache";
 
 const apiKeyRegex = new RegExp(/js-search-tips" data-[^ ]* data-k="([^"]*)/gm)
 const ALGOLIA_KEY_CACHE_KEY = "steam_algolia_key"
