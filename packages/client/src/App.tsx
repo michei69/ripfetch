@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router";
 import { ToastContainer } from "react-toastify";
 import { ThemeProvider } from "next-themes";
 import { Layout } from "./components/Layout";

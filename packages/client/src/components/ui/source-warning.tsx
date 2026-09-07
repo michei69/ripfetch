@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ExternalLink, AlertTriangle, X, Copy, Check } from "lucide-react";
+import type { ReactNode } from "react";
+import { ExternalLink, TriangleAlert, X, Copy, Check } from "lucide-react";
 import { Button } from "./button";
 
-interface SourceWarningModalProps {
+type SourceWarningModalProps = {
   open: boolean;
   source: string;
   domain: string;
@@ -39,21 +40,20 @@ const CopyClickCode = ({ children }: { children: string }) => {
   }, [children]);
 
   return (
-    <code
-      className={`cursor-pointer hover:brightness-75 inline-flex flex-row items-center ml-2 ${work ? "text-green-700 dark:text-green-300" : ""} ${error ? "text-destructive" : ""}`}
+    <button
+      type="button"
+      aria-label={`Copy password ${children}`}
+      className={`cursor-pointer hover:brightness-75 inline-flex flex-row items-center ml-2 font-mono ${work ? "text-green-700 dark:text-green-300" : ""} ${error ? "text-destructive" : ""}`}
       onClick={copyLink}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") copyLink();
-      }}
     >
       {children} {!work && !error && <Copy className="w-3 h-3 mr-2 ml-1" />}
       {work && <Check className="w-3 h-3 mr-2 ml-1" />}
       {error && <X className="w-3 h-3 mr-2 ml-1" />}
-    </code>
+    </button>
   );
 };
 
-const WARNINGS: Record<string, { title: string; body: any }> = {
+const WARNINGS: Record<string, { title: string; body: ReactNode }> = {
   "online-fix.me": {
     title: "Online-Fix.me zips are password protected",
     body: (
@@ -168,33 +168,38 @@ export function SourceWarningModal({
   return (
     <dialog
       ref={dialogRef}
+      aria-labelledby="source-warning-title"
+      aria-describedby="source-warning-body"
       className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-2xl border bg-background p-0 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm open:animate-in fade-in"
-      onClick={(e) => {
-        if (e.target === dialogRef.current) onDismiss();
-      }}
-      // we dont need keydown for ts
-      onKeyDown={undefined}
+      onCancel={onDismiss}
     >
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-yellow-500/15 flex items-center justify-center">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+              <TriangleAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
-            <h3 className="text-lg font-bold text-foreground">
+            <h3
+              id="source-warning-title"
+              className="text-lg font-bold text-foreground"
+            >
               {warning.title}
             </h3>
           </div>
           <button
             type="button"
             onClick={onDismiss}
+            aria-label="Close warning"
             className="p-1 rounded-lg hover:bg-accent transition-colors text-muted-foreground"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground leading-relaxed mb-6 inline">
+        <p
+          id="source-warning-body"
+          className="text-sm text-muted-foreground leading-relaxed mb-6 inline"
+        >
           {warning.body}
         </p>
 
