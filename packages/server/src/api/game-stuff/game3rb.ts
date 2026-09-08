@@ -1,19 +1,23 @@
-import axios from "axios";
 import {
     type DownloadsResult,
     genericClosestTo,
     type IGameSource,
     type SearchResult,
 } from "./commonData";
+import {
+    isSafeExternalUrl,
+    safeGet,
+} from "./NetworkRequest";
 
 export default class Game3rb implements IGameSource {
     displayName = "Game3RB";
 
     static async search(title: string): Promise<SearchResult[]> {
-        const req = await axios.get(
-            `https://game3rb.com/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=100&search=${encodeURIComponent(title)}`,
+        const req = await safeGet(
+            `https://game3rb.com/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=20&search=${encodeURIComponent(title)}`,
+            ["game3rb.com"],
         );
-        const data = req.data;
+        const data = Array.isArray(req?.data) ? req.data : [];
 
         const results: SearchResult[] = [];
         for (const result of data) {
@@ -46,33 +50,41 @@ export default class Game3rb implements IGameSource {
     }
 
     static async getDownloads(url: string): Promise<DownloadsResult> {
-        if (!url.includes("game3rb.com")) return {};
+        const req = await safeGet(url, ["game3rb.com"]);
+        const data = Array.isArray(req?.data)
+            ? req.data[0]?.content?.rendered ?? ""
+            : "";
 
-        const req = await axios.get(url);
-        const data = req.data[0]?.content?.rendered ?? "";
-
-        const temp: Record<string, string[]> = {};
+        const temp: Record<string, string[]> = Object.create(null);
         for (const match of data.matchAll(
             /(thenewscasts\.com\/view\/[^"]*)/gm,
         )) {
-            const req2 = await axios.get(`https://${match[1]}`);
-            const data2 = req2.data;
+            const req2 = await safeGet(
+                `https://${match[1]}`,
+                ["thenewscasts.com"],
+            );
+            const data2 = typeof req2?.data === "string" ? req2.data : "";
             for (const match2 of data2.matchAll(/href="(http[^"]*)/gm)) {
-                const host = match2[1]?.split("/")[2] ?? "";
+                const link = match2[1] ?? "";
+                if (!isSafeExternalUrl(link)) continue;
+
+                const host = new URL(link).hostname;
                 if (host) {
                     temp[host] = temp[host] || [];
-                    temp[host].push(match2[1]);
+                    temp[host].push(link);
                 }
             }
         }
 
-        const results: DownloadsResult = {};
+        const results: DownloadsResult = Object.create(null);
         for (const [host, links] of Object.entries(temp)) {
-            if (host.includes("thenewscasts")) continue;
+            if (host === "thenewscasts.com" || host.endsWith(".thenewscasts.com")) {
+                continue;
+            }
             results[host] = results[host] || {};
             if (links.length > 1) {
-                for (const idx in links) {
-                    results[host][`Part ${Number(idx) + 1}`] = links[idx] ?? "";
+                for (const [idx, link] of links.entries()) {
+                    results[host][`Part ${idx + 1}`] = link;
                 }
             } else if (links[0]) {
                 results[host].Download = links[0];

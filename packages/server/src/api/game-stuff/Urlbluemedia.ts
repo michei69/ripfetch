@@ -1,18 +1,13 @@
 import { getFirstMatch } from "@/util";
-import axios from "axios";
-import http from "node:http";
-import https from "node:https";
-
-const axiosInstance = axios.create({
-    httpAgent: new http.Agent({ keepAlive: true }),
-    httpsAgent: new https.Agent({ keepAlive: true }),
-    validateStatus: () => true,
-});
+import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
 
 export default {
     async getEncrypted(url: string): Promise<string> {
-        const res = await axios.get(url);
-        const html: string = res.data;
+        const res = await safeGet<string>(url, [
+            "pcgamestorrents.com",
+            "urlbluemedia.shop",
+        ]);
+        const html: string = typeof res?.data === "string" ? res.data : "";
         let code = getFirstMatch(html, /generateDownloadUrl[^']+'([^']+)/gm)?.[1]
 
         if (!code || typeof code !== "string") {
@@ -48,18 +43,16 @@ export default {
     async getUrl(code: string): Promise<string> {
         let dest = "";
         try {
-            const data = await axiosInstance.head(
-                `https://urlbluemedia.shop/get-url.php?url=` +
-                    encodeURIComponent(code),
-                {
-                    maxRedirects: 0,
-                },
+            const data = await safeGet(
+                `https://urlbluemedia.shop/get-url.php?url=${encodeURIComponent(code)}`,
+                ["urlbluemedia.shop"],
+                { maxRedirects: 0 },
             );
-            const location = data.headers.location;
-            dest = location ?? "";
+            const location = data?.headers.location;
+            dest = isSafeExternalUrl(location) ? location : "";
             return dest;
-        } catch (reason) {
-            console.error(reason);
+        } catch (error) {
+            console.error("Could not resolve Urlbluemedia link:", error);
             return dest;
         }
     },

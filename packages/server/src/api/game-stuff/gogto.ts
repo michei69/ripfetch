@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
     type DownloadsResult,
     genericClosestTo,
@@ -7,6 +6,10 @@ import {
 } from "./commonData";
 import Chrome from "../Chrome";
 import { parse } from "node-html-parser";
+import {
+    isSafeExternalUrl,
+    safeGet,
+} from "./NetworkRequest";
 
 type GOGSearchResponse = {
     pages: number;
@@ -45,13 +48,14 @@ export default class GOGto implements IGameSource {
     displayName = "GOGto";
 
     static async search(title: string): Promise<SearchResult[]> {
-        const req = await axios.get(
+        const req = await safeGet<GOGSearchResponse>(
             `https://catalog.gog.com/v1/catalog?limit=20&locale=en-US&order=desc:score&page=1&productType=in:game&query=like:${encodeURIComponent(title)}`,
+            ["catalog.gog.com"],
         );
-        const data = req.data as GOGSearchResponse;
+        const data = req?.data;
 
         const results: SearchResult[] = [];
-        for (const result of data.products) {
+        for (const result of data?.products ?? []) {
             results.push({
                 title: result.title.trim(),
                 url: `https://gog-games.to/game/${result.slug}`,
@@ -75,14 +79,11 @@ export default class GOGto implements IGameSource {
     }
 
     static async getDownloads(url: string): Promise<DownloadsResult> {
-        if (!url.includes("gog-games.to")) return {};
-
-        console.log(url);
-        const req = await axios.get(url, {
+        if (!url || !isSafeExternalUrl(url)) return {};
+        const req = await safeGet(url, ["gog-games.to"], {
             maxRedirects: 0,
-            validateStatus: () => true,
         });
-        if (req.status !== 200) return {}; // redirect == no game
+        if (!req || req.status !== 200) return {}; // redirect == no game
 
         const data = await Chrome.browserRequest(
             url,
@@ -108,7 +109,7 @@ export default class GOGto implements IGameSource {
             ".game-section-with-accordion-patch",
         );
 
-        const results: DownloadsResult = {};
+        const results: DownloadsResult = Object.create(null);
         for (const provider of gameAccordion.querySelectorAll("details")) {
             const host = provider.querySelector("summary")?.innerText.trim();
             if (!host) continue;
@@ -116,7 +117,7 @@ export default class GOGto implements IGameSource {
 
             for (const link of provider.querySelectorAll("div > a")) {
                 const url = link.getAttribute("href");
-                if (!url) continue;
+                if (!isSafeExternalUrl(url)) continue;
                 const title = link.innerText.trim();
                 results[host][title] = url;
             }
@@ -133,7 +134,7 @@ export default class GOGto implements IGameSource {
 
                 for (const link of provider.querySelectorAll("div > a")) {
                     const url = link.getAttribute("href");
-                    if (!url) continue;
+                    if (!isSafeExternalUrl(url)) continue;
                     const title = link.innerText.trim();
                     results[host][title] = url;
                 }
@@ -149,7 +150,7 @@ export default class GOGto implements IGameSource {
 
                 for (const link of provider.querySelectorAll("div > a")) {
                     const url = link.getAttribute("href");
-                    if (!url) continue;
+                    if (!isSafeExternalUrl(url)) continue;
                     const title = link.innerText.trim();
                     results[host][title] = url;
                 }

@@ -1,19 +1,20 @@
-import axios from "axios";
 import {
     type DownloadsResult,
     genericClosestTo,
     type IGameSource,
     type SearchResult,
 } from "./commonData";
+import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
 
 export default class GLoad implements IGameSource {
     displayName = "GLoad";
 
     static async search(title: string): Promise<SearchResult[]> {
-        const req = await axios.get(
-            `https://gload.to/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=100&search=${encodeURIComponent(title)}`,
+        const req = await safeGet(
+            `https://gload.to/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=20&search=${encodeURIComponent(title)}`,
+            ["gload.to"],
         );
-        const data = req.data;
+        const data = Array.isArray(req?.data) ? req.data : [];
 
         const results: SearchResult[] = [];
         for (const result of data) {
@@ -44,22 +45,16 @@ export default class GLoad implements IGameSource {
     }
 
     static async getDownloads(url: string): Promise<DownloadsResult> {
-        if (!url.includes("gload.to")) return {};
+        const req = await safeGet(url, ["gload.to"]);
+        const data: string = typeof req?.data === "string" ? req.data : "";
 
-        const req = await axios.get(url);
-        const data: string = req.data;
-
-        const results: DownloadsResult = {};
+        const results: DownloadsResult = Object.create(null);
         for (const match of data.matchAll(
             /<a class="dlhoster[^"]*" href="([^"]+)"[^>]*>.*<span>([^<]+)/gm,
         )) {
             const url = match[1] ?? "";
             const host = match[2] ?? "";
-            if (!url || !host) continue;
-            if (!url.includes("filecrypt.cc")) {
-                console.warn(`Unknown download link: ${url}`);
-                continue; // just to be safe
-            }
+            if (!isSafeExternalUrl(url) || !host) continue;
             results[host] = results[host] || {};
             results[host].Download = url;
         }

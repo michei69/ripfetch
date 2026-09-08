@@ -125,21 +125,25 @@ export type SteamInfo = {
     };
 };
 
-export interface IGameSource {
+export type IGameSource = {
     displayName: string;
     search(title: string): Promise<SearchResult[]>;
     getClosestTo(query: string): Promise<SearchResult | null>;
     getDownloads(url: string): Promise<DownloadsResult>;
-}
+};
 
 // this shouldnt be here, it should be part of a base class
 // but im so fucking lazy im just gonna place it here, ok?
-export function genericClosestTo<T>(obj: any, keys: string[], query: string) {
+export function genericClosestTo<T>(
+    obj: T[],
+    keys: string[],
+    query: string,
+): T | undefined {
     const res = new Fuse(obj, {
         keys,
         includeScore: true,
     })
         .search(query)
         .sort((a, b) => (a.score || 1) - (b.score || 1));
-    return res[0]?.item as T;
+    return res[0]?.item;
 }

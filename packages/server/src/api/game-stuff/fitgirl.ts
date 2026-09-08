@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
     type DownloadsResult,
     genericClosestTo,
@@ -6,15 +5,17 @@ import {
     type SearchResult,
 } from "./commonData";
 import { decode } from "he";
+import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
 
 export default class FitGirl implements IGameSource {
     displayName = "FitGirl";
 
     static async search(title: string): Promise<SearchResult[]> {
-        const req = await axios.get(
-            `https://fitgirl-repacks.site/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=100&search=${encodeURIComponent(title)}`,
+        const req = await safeGet(
+            `https://fitgirl-repacks.site/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=20&search=${encodeURIComponent(title)}`,
+            ["fitgirl-repacks.site"],
         );
-        const data = req.data;
+        const data = Array.isArray(req?.data) ? req.data : [];
 
         const results: SearchResult[] = [];
         for (const result of data) {
@@ -44,12 +45,12 @@ export default class FitGirl implements IGameSource {
     }
 
     static async getDownloads(url: string): Promise<DownloadsResult> {
-        if (!url.includes("fitgirl-repacks.site")) return {};
+        const req = await safeGet(url, ["fitgirl-repacks.site"]);
+        const data = Array.isArray(req?.data)
+            ? req.data[0]?.content?.rendered ?? ""
+            : "";
 
-        const req = await axios.get(url);
-        const data = req.data[0]?.content?.rendered ?? "";
-
-        const results: DownloadsResult = {};
+        const results: DownloadsResult = Object.create(null);
         for (const match of data.matchAll(
             /<a href="([^"]+)" target="_blank" rel="noopener nofollow">([^<]+)/gm,
         )) {
@@ -62,7 +63,7 @@ export default class FitGirl implements IGameSource {
                 file = file.replaceAll(/.*part(\d\d).*/gm, "Part $1");
             }
             const host = url.split("/")[2];
-            if (!url || !host || !file) continue;
+            if (!isSafeExternalUrl(url) || !host || !file) continue;
             results[host] = results[host] || {};
             results[host][file] = url;
         }

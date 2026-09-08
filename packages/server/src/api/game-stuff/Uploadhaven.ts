@@ -1,38 +1,58 @@
-import axios from "axios";
-import http from "node:http";
-import https from "node:https";
-
-const axiosInstance = axios.create({
-    httpAgent: new http.Agent({ keepAlive: true }),
-    httpsAgent: new https.Agent({ keepAlive: true }),
-    validateStatus: () => true,
-    withCredentials: true,
-    withXSRFToken: true,
-});
+import {
+    isAllowedHost,
+    safeGet,
+    safePost,
+} from "./NetworkRequest";
 
 const inputTypeValueRegex = /name="([^"]*)" type="hidden" value="([^"]*)/gm;
 
+function wait(ms: number, signal?: AbortSignal): Promise<void> {
+    if (!signal) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+    if (signal.aborted) {
+        return Promise.reject(new Error("Request aborted"));
+    }
+
+    return new Promise((resolve, reject) => {
+        const abort = () => {
+            clearTimeout(timer);
+            reject(new Error("Request aborted"));
+        };
+        const timer = setTimeout(() => {
+            signal.removeEventListener("abort", abort);
+            resolve();
+        }, ms);
+        signal.addEventListener("abort", abort, { once: true });
+    });
+}
+
 export default {
-    async getRealUrl(url: string): Promise<string> {
-        let req = await axiosInstance.get(url, {
+    async getRealUrl(url: string, signal?: AbortSignal): Promise<string> {
+        if (!isAllowedHost(url, ["uploadhaven.com"])) return "";
+
+        let req = await safeGet<string>(url, ["uploadhaven.com"], {
+            signal,
             headers: {
                 Referer: "https://steamunlocked.org/",
                 "User-Agent":
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
             },
         });
+        if (!req) return "";
+
         let downloadLink = "";
         let tries = 0;
         while (!downloadLink && tries < 1) {
-            const html = req.data as string;
+            const html = typeof req.data === "string" ? req.data : "";
 
-            const matches: Record<string, string> = {};
+            const matches: Record<string, string> = Object.create(null);
             for (const match of html.matchAll(inputTypeValueRegex)) {
                 if (match[1]) matches[match[1]] = match[2] ?? "";
             }
 
             console.log("Waiting a few seconds so session registers...");
-            await new Promise((resolve) => setTimeout(resolve, 5_000));
+            await wait(5_000, signal);
 
             const token = matches._token ?? "";
             const key = matches.key ?? "";
@@ -58,30 +78,39 @@ export default {
                 }
             }
 
-            req = await axiosInstance.post(url, data, {
-                headers: {
-                    Referer: url,
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "User-Agent":
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
-                    Cookie: cookieHeader.join("; "),
+            const next = await safePost<string>(
+                url,
+                data,
+                ["uploadhaven.com"],
+                {
+                    signal,
+                    headers: {
+                        Referer: url,
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "User-Agent":
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
+                        Cookie: cookieHeader.join("; "),
+                    },
                 },
-            });
+            );
+            if (!next) return "";
+            req = next;
 
-            const html2 = req.data as string;
+            const html2 = typeof req.data === "string" ? req.data : "";
 
             for (const match of html2.matchAll(/href="([^"]*)/gm)) {
-                if (
-                    !downloadLink &&
-                    match[1]?.includes("download") &&
-                    match[1]?.includes("uploadhaven")
-                ) {
-                    downloadLink = match[1];
-                }
+                const href = match[1] ?? "";
+                if (!href.includes("download")) continue;
+                try {
+                    const candidate = new URL(href, url).toString();
+                    if (isAllowedHost(candidate, ["uploadhaven.com"])) {
+                        downloadLink = candidate;
+                    }
+                } catch {}
             }
             tries++;
         }
 
         return downloadLink;
-    }
-}
+    },
+};

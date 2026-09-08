@@ -1,5 +1,9 @@
-import axios from "axios";
 import Solverr from "../flaresolverr";
+import {
+    isAllowedHost,
+    isSafeExternalUrl,
+    safeGet,
+} from "./NetworkRequest";
 import NetworkRequest from "./NetworkRequest";
 import { getFirstMatch } from "@/util";
 
@@ -16,6 +20,8 @@ export default {
     ],
 
     async megaup(url: string, no_redirect: boolean) {
+        if (!isAllowedHost(url, ["megaup.net"])) return null;
+
         const data = await NetworkRequest.get(url);
         const u = data.match(/(https:\/\/download\.megaup\.net[^']+)/gm)?.[0];
         if (!u) {
@@ -40,6 +46,9 @@ export default {
                 ? match
                 : `https://games.michei.dev/api/megaup/${match?.split("/").pop()?.split("?").shift()}`;
         }
+        if (typeof result === "string" && !isSafeExternalUrl(result)) {
+            return null;
+        }
         return no_redirect
             ? {
                   referer: u,
@@ -49,18 +58,21 @@ export default {
     },
 
     async buzzheavier(url: string) {
-        const data = await axios.get(`${url}/download`, {
+        if (!isAllowedHost(url, ["buzzheavier.com"])) return null;
+
+        const data = await safeGet(`${url}/download`, ["buzzheavier.com"], {
             headers: {
                 Referer: url,
             },
         });
-        return data.headers["hx-redirect"];
+        const redirect = data?.headers["hx-redirect"];
+        return isSafeExternalUrl(redirect) ? redirect : null;
     },
 
     async solve(url: string, no_redirect = false) {
-        if (url.includes("megaup.net")) {
+        if (isAllowedHost(url, ["megaup.net"])) {
             return await this.megaup(url, no_redirect);
-        } else if (url.includes("buzzheavier.com")) {
+        } else if (isAllowedHost(url, ["buzzheavier.com"])) {
             return await this.buzzheavier(url);
         }
     },

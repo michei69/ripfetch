@@ -5,8 +5,11 @@ import { cache as cacheTable } from "./schema";
 const SEARCH_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 const GAME_INFO_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 const LINKS_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+const MAX_CACHE_VALUE_LENGTH = 8 * 1024 * 1024;
+const CACHE_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
+let cleanupStarted = false;
 
-export async function getCache(key: string): Promise<any | null> {
+export async function getCache<T = unknown>(key: string): Promise<T | null> {
     const now = new Date();
     const [result] = await db
         .select()
@@ -17,9 +20,10 @@ export async function getCache(key: string): Promise<any | null> {
     if (!result) {
         return null;
     }
+    if (result.value.length > MAX_CACHE_VALUE_LENGTH) return null;
 
     try {
-        return JSON.parse(result.value);
+        return JSON.parse(result.value) as T;
     } catch {
         return null;
     }
@@ -27,11 +31,14 @@ export async function getCache(key: string): Promise<any | null> {
 
 export async function setCache(
     key: string,
-    value: any,
+    value: unknown,
     ttlMs?: number,
 ): Promise<void> {
     const expiresAt = new Date(Date.now() + (ttlMs || GAME_INFO_CACHE_TTL));
     const valueStr = JSON.stringify(value);
+    if (!valueStr || valueStr.length > MAX_CACHE_VALUE_LENGTH) {
+        throw new Error("Cache value exceeds the configured size limit");
+    }
 
     await db
         .insert(cacheTable)
@@ -49,11 +56,17 @@ export async function setCache(
         });
 }
 
-export async function setSearchCache(key: string, value: any): Promise<void> {
+export async function setSearchCache(
+    key: string,
+    value: unknown,
+): Promise<void> {
     return setCache(key, value, SEARCH_CACHE_TTL);
 }
 
-export async function setLinksCache(key: string, value: any): Promise<void> {
+export async function setLinksCache(
+    key: string,
+    value: unknown,
+): Promise<void> {
     return setCache(key, value, LINKS_CACHE_TTL);
 }
 
@@ -64,6 +77,17 @@ export async function deleteCache(key: string): Promise<void> {
 export async function clearExpiredCache(): Promise<void> {
     const now = new Date();
     await db.delete(cacheTable).where(lte(cacheTable.expiresAt, now));
+}
+
+export function startCacheCleanup(): void {
+    if (cleanupStarted) return;
+    cleanupStarted = true;
+
+    setInterval(() => {
+        void clearExpiredCache().catch((error) => {
+            console.error("Could not clear expired cache:", error);
+        });
+    }, CACHE_CLEANUP_INTERVAL_MS);
 }
 
 export async function ensureCacheTable(): Promise<void> {

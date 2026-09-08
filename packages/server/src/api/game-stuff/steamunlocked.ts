@@ -1,5 +1,9 @@
 import type { DownloadsResult, IGameSource, SearchResult } from "./commonData";
 import Fuse from "fuse.js";
+import {
+    isAllowedHost,
+    isSafeExternalUrl,
+} from "./NetworkRequest";
 import NetworkRequest from "./NetworkRequest";
 
 const searchResultRegex = /<a href="([^"]+)"[^<]+<h1>([^<]+)/gms;
@@ -10,7 +14,8 @@ export default class Steamunlocked implements IGameSource {
 
     static async search(title: string): Promise<SearchResult[]> {
         const data = await NetworkRequest.get(
-            `https://steamunlocked.org/?s=${title}`,
+            `https://steamunlocked.org/?s=${encodeURIComponent(title)}`,
+            ["steamunlocked.org"],
         );
 
         const results: SearchResult[] = [];
@@ -42,14 +47,17 @@ export default class Steamunlocked implements IGameSource {
     }
 
     static async getDownloads(url: string): Promise<DownloadsResult> {
-        if (!url.includes("steamunlocked.org")) return {};
+        if (!isAllowedHost(url, ["steamunlocked.org"])) return {};
 
         const data = await NetworkRequest.get(url);
 
-        const results: DownloadsResult = {};
+        const results: DownloadsResult = Object.create(null);
         for (const match of data.matchAll(downloadLinkRegex)) {
             const linkUrl = match[1] ?? "";
-            if (linkUrl) {
+            if (
+                isAllowedHost(linkUrl, ["uploadhaven.com"]) &&
+                isSafeExternalUrl(linkUrl)
+            ) {
                 results.uploadhaven = {
                     Download: linkUrl.replace(
                         "https://uploadhaven.com/download/",
