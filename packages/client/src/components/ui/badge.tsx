@@ -1,43 +1,38 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "../../lib/utils";
 
-interface BadgeProps {
-  children: React.ReactNode;
-  variant?:
-    | "default"
-    | "secondary"
-    | "success"
-    | "warning"
-    | "destructive"
-    | "info"
-    | "outline";
-  className?: string;
-}
+const badgeVariants = cva(
+  "inline-flex items-center rounded-sm border px-2.5 py-0.5 text-xs font-medium",
+  {
+    variants: {
+      variant: {
+        default: "border-primary bg-primary text-primary-foreground",
+        secondary: "border-border bg-secondary text-secondary-foreground",
+        success: "border-phosphor/40 bg-phosphor/15 text-phosphor",
+        warning: "border-amber/40 bg-amber/15 text-amber",
+        destructive: "border-destructive/40 bg-destructive/15 text-destructive",
+        info: "border-cyan-term/40 bg-cyan-term/15 text-cyan-term",
+        outline: "border-border bg-transparent text-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  },
+);
 
-const variantStyles = {
-  default: "bg-primary text-primary-foreground",
-  secondary: "bg-secondary text-secondary-foreground",
-  success:
-    "bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/25",
-  warning:
-    "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 border-yellow-500/25",
-  destructive: "bg-destructive/15 text-destructive",
-  info: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/25",
-  outline: "border text-foreground bg-transparent",
-};
+interface BadgeProps
+  extends React.ComponentProps<"span">,
+    VariantProps<typeof badgeVariants> {}
 
 export function Badge({
   children,
-  variant = "default",
+  variant,
   className,
+  ...props
 }: BadgeProps) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border border-transparent",
-        variantStyles[variant],
-        className,
-      )}
-    >
+    <span className={cn(badgeVariants({ variant }), className)} {...props}>
       {children}
     </span>
   );

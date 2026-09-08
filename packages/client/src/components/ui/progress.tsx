@@ -8,10 +8,13 @@ interface ProgressProps {
 export function Progress({ value, className }: ProgressProps) {
   return (
     <div
-      className={cn("h-1.5 bg-muted rounded-full overflow-hidden", className)}
+      className={cn(
+        "h-3 border border-border bg-muted overflow-hidden",
+        className,
+      )}
     >
       <div
-        className="h-full bg-primary rounded-full transition-all duration-300 ease-out"
+        className="h-full bg-primary [background-image:repeating-linear-gradient(90deg,var(--primary)_0_8px,var(--background)_8px_10px)] transition-[width] duration-300 ease-out"
         style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
       />
     </div>
