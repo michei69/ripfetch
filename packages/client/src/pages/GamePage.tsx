@@ -9,10 +9,7 @@ import {
   Check,
   ChevronDown,
   RefreshCw,
-  CircleAlert,
   ArrowLeft,
-  Gamepad2,
-  LoaderCircleIcon,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
@@ -228,6 +225,7 @@ const isSafeSteamImageUrl = (value: string): boolean => {
     const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
     return (
       hostname === "shared.fastly.steamstatic.com" ||
+      hostname === "shared.akamai.steamstatic.com" ||
       hostname === "cdn.akamai.steamstatic.com" ||
       hostname === "steamcdn-a.akamaihd.net"
     );
@@ -461,29 +459,33 @@ export default function GamePage() {
   // Error with no data
   if (error && !steam) {
     return (
-      <section className="container mx-auto px-4 py-16">
-        <div className="max-w-md mx-auto text-center">
-          <div className="h-14 w-14 bg-destructive/15 rounded-full flex items-center justify-center mx-auto mb-5">
-            <CircleAlert className="h-7 w-7 text-destructive" />
+      <section className="game-page">
+        <div className="mx-auto max-w-xl border border-destructive bg-card">
+          <div className="border-b border-destructive bg-destructive/10 px-5 py-3">
+            <p className="font-mono text-sm text-destructive">[ FAILED ]</p>
           </div>
-          <h2 className="text-xl font-bold text-destructive mb-2">
-            Failed to Load Game
-          </h2>
-          <p className="text-muted-foreground mb-6 text-sm">{error}</p>
-          <div className="flex items-center justify-center gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setAttempt((value) => value + 1)}
-            >
-              <RefreshCw className="h-4 w-4" />
-              Retry
-            </Button>
-            <Button asChild>
-              <Link to="/">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Search
-              </Link>
-            </Button>
+          <div className="p-5 md:p-6">
+            <h2 className="text-2xl text-destructive mb-2 md:text-3xl">
+              Failed to Load Game
+            </h2>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+              {error}
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setAttempt((value) => value + 1)}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Search
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
@@ -497,77 +499,96 @@ export default function GamePage() {
       <div>
         {/* ── Hero card ───────────────────────────────────────────── */}
         <section className="game-overview">
-          <div className="relative">
-            <div className="relative p-6 md:p-8">
-              <Link
-                to="/"
-                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Search
-              </Link>
+          {/* terminal title bar */}
+          <div className="mb-5 flex items-center gap-2 border-b border-border pb-3">
+            <span aria-hidden="true" className="h-2.5 w-2.5 bg-destructive" />
+            <span aria-hidden="true" className="h-2.5 w-2.5 bg-amber" />
+            <span aria-hidden="true" className="h-2.5 w-2.5 bg-phosphor" />
+            <span className="ml-2 min-w-0 truncate font-mono text-xs text-muted-foreground">
+              game://{id ?? ""}
+            </span>
+          </div>
+          <div>
+            <Link
+              to="/"
+              className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-phosphor"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Search
+            </Link>
 
-              <div className="flex flex-col md:flex-row gap-6">
-                {steam.header_image && (
-                  <div className="md:w-72 shrink-0">
+            <div className="flex flex-col gap-6 md:flex-row">
+              {steam.header_image && (
+                <div className="shrink-0 md:w-72">
+                  <div className="relative overflow-hidden border border-border bg-muted">
                     <img
                       src={steam.header_image}
                       alt={steam.name}
-                      className="w-full rounded-xl shadow-lg object-cover aspect-video md:aspect-auto"
+                      className="block aspect-video w-full object-cover brightness-[0.92] transition-[filter] duration-150 hover:brightness-110 md:aspect-auto"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 opacity-15 bg-[repeating-linear-gradient(to_bottom,transparent_0px,transparent_2px,rgba(0,0,0,0.8)_3px,transparent_4px)]"
                     />
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <h1 className="game-title"><a
-                    href={`https://store.steampowered.com/app/${encodeURIComponent(id ?? "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-2xl md:text-3xl font-bold hover:underline decoration-primary/30 underline-offset-4 inline-block mb-3"
-                  >
-                    {steam.name}
-                  </a></h1>
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h1 className="game-title"><a
+                  href={`https://store.steampowered.com/app/${encodeURIComponent(id ?? "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mb-3 inline-block"
+                >
+                  {steam.name}
+                </a></h1>
 
-                  {steam.short_description && (
-                    <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                      {steam.short_description}
+                {steam.short_description && (
+                  <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
+                    {steam.short_description}
+                  </p>
+                )}
+
+                <div className="mb-4 flex flex-wrap gap-1.5">
+                  <Badge variant={steam.is_free ? "success" : "default"}>
+                    {steam.is_free
+                      ? "Free"
+                      : steam.price_overview?.final_formatted ||
+                        steam.price_overview?.initial_formatted ||
+                        "N/A"}
+                  </Badge>
+                  {steam.genres?.map((g) => (
+                    <Badge key={g.id} variant="secondary">
+                      {g.description}
+                    </Badge>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-1.5 text-sm">
+                  {steam.developers?.length > 0 && (
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <Users
+                        className="h-4 w-4 shrink-0 text-phosphor-dim"
+                        aria-hidden="true"
+                      />
+                      <span className="font-medium">Dev:</span>
+                      <span className="break-words text-muted-foreground">
+                        {steam.developers.join(", ")}
+                      </span>
                     </p>
                   )}
-
-                  <div className="flex flex-wrap gap-1.5 mb-4">
-                    <Badge variant={steam.is_free ? "success" : "default"}>
-                      {steam.is_free
-                        ? "Free"
-                        : steam.price_overview?.final_formatted ||
-                          steam.price_overview?.initial_formatted ||
-                          "N/A"}
-                    </Badge>
-                    {steam.genres?.map((g) => (
-                      <Badge key={g.id} variant="secondary">
-                        {g.description}
-                      </Badge>
-                    ))}
-                  </div>
-
-                  <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                    {steam.developers?.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Dev:</span>
-                        <span className="font-medium">
-                          {steam.developers.join(", ")}
-                        </span>
-                      </div>
-                    )}
-                    {steam.publishers?.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <Globe className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Pub:</span>
-                        <span className="font-medium">
-                          {steam.publishers.join(", ")}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  {steam.publishers?.length > 0 && (
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <Globe
+                        className="h-4 w-4 shrink-0 text-phosphor-dim"
+                        aria-hidden="true"
+                      />
+                      <span className="font-medium">Pub:</span>
+                      <span className="break-words text-muted-foreground">
+                        {steam.publishers.join(", ")}
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -576,19 +597,29 @@ export default function GamePage() {
 
         {/* ── Download Links ──────────────────────────────────────── */}
         <div className="download-workspace"><aside className="activity-panel" aria-label="Server activity">
-          <div className="section-heading"><h2>Server activity</h2><span>{Math.floor(progress)}%</span></div>
+          <div className="section-heading"><h2>Server activity</h2><span className="font-mono tabular-nums">{Math.floor(progress)}%</span></div>
           <Progress value={progress} />
           <p role="status" className="request-status">{requestStatus}</p>
-          <ul>{Object.entries(activity).map(([source, message]) => <li key={source}><strong>{source}</strong><span>{message}</span></li>)}</ul>
+          <ul>
+            {Object.entries(activity).map(([source, message]) => (
+              <li
+                key={source}
+                className="grid-cols-[auto_1fr] [&:nth-last-child(2)]:opacity-85 [&:nth-last-child(3)]:opacity-70 [&:nth-last-child(4)]:opacity-55 [&:nth-last-child(n+5)]:opacity-40"
+              >
+                <span className="text-phosphor">{`$ ${source} →`}</span>
+                <span className="text-muted-foreground">{message}</span>
+              </li>
+            ))}
+          </ul>
         </aside><div className="download-results">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Download className="h-5 w-5 text-primary" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-border bg-secondary">
+                <Download className="h-4 w-4 text-phosphor" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold">Download Links</h3>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-w-0">
+                <h3 className="text-2xl leading-none">Download Links</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
                   {Object.keys(downloads).length} source
                   {Object.keys(downloads).length !== 1 ? "s" : ""}
                 </p>
@@ -607,35 +638,41 @@ export default function GamePage() {
           {progress > 0 &&
             progress < 100 &&
             Object.keys(downloads).length === 0 && (
-              <Card className="p-10 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                    <LoaderCircleIcon className="animate-spin" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Searching sources for download links...
-                  </p>
-                  <Progress value={progress} className="w-48" />
-                </div>
+              <Card className="p-6 md:p-8">
+                <p className="mb-4 text-sm text-muted-foreground">
+                  <span className="text-phosphor">$</span> Searching sources for
+                  download links
+                  <span
+                    aria-hidden="true"
+                    className="cursor-blink ml-1 text-phosphor"
+                  >
+                    █
+                  </span>
+                </p>
+                <Progress value={progress} className="w-full max-w-md" />
               </Card>
             )}
 
           {/* Error after steam loaded */}
           {error && steam && (
-            <Card className="p-6 text-center">
-              <CircleAlert className="h-8 w-8 text-destructive mx-auto mb-3" />
-              <p className="text-sm font-medium text-destructive mb-1">
-                Couldn't load downloads
-              </p>
-              <p className="text-xs text-muted-foreground mb-4">{error}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAttempt((value) => value + 1)}
-              >
-                <RefreshCw className="h-4 w-4" />
-                Retry
-              </Button>
+            <Card className="border-destructive">
+              <div className="border-b border-destructive bg-destructive/10 px-5 py-2.5">
+                <p className="font-mono text-xs text-destructive">[ ERROR ]</p>
+              </div>
+              <div className="p-5">
+                <p className="mb-1 text-sm font-medium text-destructive">
+                  Couldn't load downloads
+                </p>
+                <p className="mb-4 text-xs text-muted-foreground">{error}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAttempt((value) => value + 1)}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Retry
+                </Button>
+              </div>
             </Card>
           )}
 
@@ -643,18 +680,24 @@ export default function GamePage() {
           {!error &&
             Object.keys(downloads).length === 0 &&
             progress === 100 && (
-              <Card className="p-10 text-center">
-                <Gamepad2 className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-40" />
-                <p className="font-medium">No Downloads Available</p>
-                <p className="text-xs text-muted-foreground mt-1 mb-5">
-                  Couldn't find any download links for this game.
-                </p>
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/">
-                    <ArrowLeft className="h-4 w-4" />
-                    Search for Another Game
-                  </Link>
-                </Button>
+              <Card>
+                <div className="border-b border-border bg-muted/50 px-5 py-2.5">
+                  <p className="font-mono text-xs text-muted-foreground">
+                    [ NO RESULTS ]
+                  </p>
+                </div>
+                <div className="p-5 text-center md:p-8">
+                  <p className="mb-1 font-medium">No Downloads Available</p>
+                  <p className="mb-5 text-xs text-muted-foreground">
+                    Couldn't find any download links for this game.
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <Link to="/">
+                      <ArrowLeft className="h-4 w-4" />
+                      Search for Another Game
+                    </Link>
+                  </Button>
+                </div>
               </Card>
             )}
 
@@ -672,22 +715,24 @@ export default function GamePage() {
                       type="button"
                       onClick={() => toggleCollapse(sourceKey)}
                       aria-expanded={!isCollapsed}
-                      className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-accent/30 transition-colors text-left"
+                      className="flex w-full items-center justify-between gap-3 p-4 text-left transition-colors hover:bg-accent/40 md:p-5"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Download className="h-4 w-4 text-primary" />
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-border bg-secondary">
+                          <Download className="h-4 w-4 text-phosphor" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h4 className="font-bold capitalize">{source}</h4>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="font-mono text-sm font-semibold capitalize">
+                              {source}
+                            </h4>
                             {title && (
                               <span className="text-xs text-muted-foreground">
                                 ({title})
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
+                          <p className="mt-0.5 text-xs text-muted-foreground">
                             {linkCount} link{linkCount !== 1 ? "s" : ""}
                             {isCollapsed ? " — collapsed" : ""}
                           </p>
@@ -695,7 +740,7 @@ export default function GamePage() {
                       </div>
                       <ChevronDown
                         className={cn(
-                          "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                          "h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200",
                           !isCollapsed && "rotate-180",
                         )}
                       />
@@ -703,7 +748,7 @@ export default function GamePage() {
 
                     {/* Domain groups */}
                     {!isCollapsed && (
-                      <div className="px-4 md:px-5 pb-4 md:pb-5 space-y-4">
+                      <div className="space-y-4 px-4 pb-4 md:px-5 md:pb-5">
                         {groups.map(({ domain, items }) => {
                           const isTrusted = matchesAny(domain, TRUSTED_MARKERS);
                           const isSlow = matchesAny(domain, SLOW_MARKERS);
@@ -711,8 +756,8 @@ export default function GamePage() {
 
                           return (
                             <div key={domain}>
-                              <div className="flex items-center gap-2 mb-2.5">
-                                <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <div className="mb-2.5 flex flex-wrap items-center gap-2">
+                                <Globe className="h-3.5 w-3.5 shrink-0 text-phosphor-dim" />
                                 <span className="text-sm font-semibold">
                                   {domain}
                                 </span>
@@ -732,7 +777,7 @@ export default function GamePage() {
                                   {items.length !== 1 ? "s" : ""}
                                 </span>
                               </div>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 {items.map(({ label, url }) => {
                                   if (!isSafeExternalUrl(url)) return null;
 
@@ -762,21 +807,21 @@ export default function GamePage() {
                                   return (
                                     <div
                                       key={uid}
-                                      className="download-row group flex items-center justify-between gap-2 p-3 hover:bg-accent transition-colors"
+                                      className="download-row group flex items-center justify-between gap-2 p-3 transition-colors hover:bg-accent"
                                     >
                                       <a
                                         href={url}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={handleLinkClick}
-                                        className="flex items-center gap-2.5 min-w-0 flex-1"
+                                        className="flex min-w-0 flex-1 items-center gap-2.5"
                                       >
-                                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                                        <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-phosphor" />
                                         <div className="min-w-0">
-                                          <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                                          <p className="truncate text-sm transition-colors group-hover:text-phosphor">
                                             {label}
                                           </p>
-                                          <p className="text-xs text-muted-foreground truncate">
+                                          <p className="truncate text-xs text-muted-foreground">
                                             {domain}
                                           </p>
                                         </div>
@@ -784,12 +829,12 @@ export default function GamePage() {
                                       <button
                                         type="button"
                                         onClick={() => copyLink(url, uid)}
-                                        className="shrink-0 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                        className="shrink-0 p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                                         aria-label="Copy link"
                                         title="Copy link"
                                       >
                                         {isCopied ? (
-                                          <Check className="h-3.5 w-3.5 text-green-500" />
+                                          <Check className="h-3.5 w-3.5 text-phosphor" />
                                         ) : (
                                           <Copy className="h-3.5 w-3.5" />
                                         )}
