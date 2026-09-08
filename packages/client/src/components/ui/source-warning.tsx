@@ -43,7 +43,7 @@ const CopyClickCode = ({ children }: { children: string }) => {
     <button
       type="button"
       aria-label={`Copy password ${children}`}
-      className={`cursor-pointer hover:brightness-75 inline-flex flex-row items-center ml-2 font-mono ${work ? "text-green-700 dark:text-green-300" : ""} ${error ? "text-destructive" : ""}`}
+      className={`cursor-pointer hover:brightness-75 inline-flex flex-row items-center ml-2 font-mono ${work ? "text-phosphor" : ""} ${error ? "text-destructive" : ""}`}
       onClick={copyLink}
     >
       {children} {!work && !error && <Copy className="w-3 h-3 mr-2 ml-1" />}
@@ -170,52 +170,53 @@ export function SourceWarningModal({
       ref={dialogRef}
       aria-labelledby="source-warning-title"
       aria-describedby="source-warning-body"
-      className="fixed inset-0 z-50 m-auto w-full max-w-md rounded-2xl border bg-background p-0 shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm open:animate-in fade-in"
+      className="fixed inset-0 z-50 m-auto w-full max-w-md border bg-background p-0 shadow-2xl backdrop:bg-black/55 open:animate-in fade-in"
       onCancel={onDismiss}
     >
+      <div className="flex items-center justify-between gap-3 border-b bg-muted px-4 py-2">
+        <h3
+          id="source-warning-title"
+          className="font-mono text-sm font-medium text-foreground"
+        >
+          <span className="mr-2 text-amber">[!]</span>
+          {warning.title}
+        </h3>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Close warning"
+          className="p-1 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
       <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-yellow-500/15 flex items-center justify-center">
-              <TriangleAlert className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-            </div>
-            <h3
-              id="source-warning-title"
-              className="text-lg font-bold text-foreground"
-            >
-              {warning.title}
-            </h3>
+        <div className="mb-5 flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-amber/50 bg-amber/10">
+            <TriangleAlert className="h-5 w-5 text-amber" />
           </div>
-          <button
-            type="button"
-            onClick={onDismiss}
-            aria-label="Close warning"
-            className="p-1 rounded-lg hover:bg-accent transition-colors text-muted-foreground"
+          <p
+            id="source-warning-body"
+            className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground"
           >
-            <X className="h-5 w-5" />
-          </button>
+            {warning.body}
+          </p>
         </div>
 
-        <p
-          id="source-warning-body"
-          className="text-sm text-muted-foreground leading-relaxed mb-6 inline"
-        >
-          {warning.body}
-        </p>
-
-        <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
+        <p className="mb-6 text-xs leading-relaxed text-muted-foreground">
           Redirecting to:{" "}
-          <span className="font-mono text-foreground">{domain}</span>
+          <span className="text-foreground">{domain}</span>
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button onClick={onConfirm} className="flex-1">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button onClick={onConfirm} className="flex-1 rounded-none">
             <ExternalLink className="h-4 w-4" />
             Continue Anyway
           </Button>
           <Button
             variant="outline"
-            className="text-foreground"
+            className="rounded-none text-foreground"
             onClick={onDismiss}
           >
             Go Back
@@ -225,7 +226,7 @@ export function SourceWarningModal({
         <button
           type="button"
           onClick={onDismissPermanently}
-          className="mt-4 w-full text-xs text-muted-foreground hover:text-foreground text-center transition-colors underline underline-offset-2"
+          className="mt-4 w-full text-center text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
         >
           Don&apos;t show this warning for {source} again
         </button>

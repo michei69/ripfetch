@@ -822,6 +822,82 @@ body::after {
   }
 }
 
+/* (7) toastify terminal skin.
+
+   react-toastify's stylesheet is imported AFTER index.css (main.tsx), so
+   the --toastify-* vars are repinned on html:root and the toast rules carry
+   extra specificity to win that cascade. Vars reference the theme tokens,
+   so the skin follows light/dark automatically. */
+
+:root {
+  --toast-bg: var(--card);
+  --toast-fg: var(--foreground);
+  --toast-border: var(--border);
+  --toast-accent-success: var(--phosphor);
+  --toast-accent-info: var(--cyan-term);
+  --toast-accent-warning: var(--amber);
+  --toast-accent-error: var(--destructive);
+}
+
+html:root {
+  --toastify-color-light: var(--card);
+  --toastify-color-dark: var(--card);
+  --toastify-text-color-light: var(--foreground);
+  --toastify-text-color-dark: var(--foreground);
+  --toastify-color-info: var(--cyan-term);
+  --toastify-color-success: var(--phosphor);
+  --toastify-color-warning: var(--amber);
+  --toastify-color-error: var(--destructive);
+  --toastify-icon-color-info: var(--cyan-term);
+  --toastify-icon-color-success: var(--phosphor);
+  --toastify-icon-color-warning: var(--amber);
+  --toastify-icon-color-error: var(--destructive);
+  --toastify-color-progress-light: var(--phosphor);
+  --toastify-color-progress-dark: var(--phosphor);
+  --toastify-color-progress-info: var(--cyan-term);
+  --toastify-color-progress-success: var(--phosphor);
+  --toastify-color-progress-warning: var(--amber);
+  --toastify-color-progress-error: var(--destructive);
+  --toastify-toast-bd-radius: 0;
+  --toastify-toast-shadow: none;
+  --toastify-font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+body .Toastify__toast {
+  font-family: var(--font-mono);
+  border: 1px solid var(--toast-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body .Toastify__toast--success {
+  border-color: var(--toast-accent-success);
+}
+
+body .Toastify__toast--error {
+  border-color: var(--toast-accent-error);
+}
+
+body .Toastify__toast--warning {
+  border-color: var(--toast-accent-warning);
+}
+
+body .Toastify__toast--info {
+  border-color: var(--toast-accent-info);
+}
+
+body .Toastify__close-button,
+body .Toastify__close-button--light {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+body .Toastify__close-button:hover,
+body .Toastify__close-button:focus {
+  color: var(--foreground);
+  opacity: 1;
+}
+
 /* reduced motion — all animation / scanline / cursor effects off */
 
 @media (prefers-reduced-motion: reduce) {
