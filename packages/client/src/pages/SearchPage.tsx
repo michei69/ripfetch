@@ -9,6 +9,40 @@ import { Button } from "../components/ui/button";
 type SearchResult = { name: string; id: number; objectID?: string; small_capsule?: string };
 const picks: SearchResult[] = [{ id: 1245620, name: "ELDEN RING" }, { id: 1091500, name: "Cyberpunk 2077" }, { id: 1086940, name: "Baldur's Gate 3" }, { id: 1145360, name: "Hades" }];
 
+function TileArt({ game }: { game: SearchResult }) {
+  const primary = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.id}/header.jpg`;
+  const [src, setSrc] = useState(primary);
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div
+        role="img"
+        aria-label={game.name}
+        className="flex h-full w-full items-center justify-center border border-dashed border-border font-mono text-muted-foreground"
+      >
+        [ NO ARTWORK ]
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={game.name}
+      loading="lazy"
+      onError={() => {
+        if (src === primary && game.small_capsule) {
+          setSrc(
+            `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.id}/${game.small_capsule}/capsule_231x87.jpg`,
+          );
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
+  );
+}
+
 const parseSearchResult = (value: unknown): SearchResult | null => {
   if (
     !isJsonObject(value) ||
@@ -86,7 +120,7 @@ export default function SearchPage() {
       {error && <div className="inline-error" role="alert"><span className="min-w-0 flex-1"><span style={{ color: "var(--amber)" }}>[ ERROR ]</span> {error}</span><Button type="button" onClick={() => setAttempt((value) => value + 1)} style={{ background: "var(--primary)", border: "1px solid var(--primary)", color: "var(--primary-foreground)", fontWeight: 500, textDecoration: "none" }}>Retry</Button></div>}
       {searching && !loading && !error && results.length === 0 && <div className="empty-state"><Search size={30} /><h3 className="font-mono">[ NO RESULTS ]</h3><p>Try another title or check the spelling.</p></div>}
       <div className={searching ? "game-grid game-grid-search" : "game-grid"}>
-        {(searching ? results : picks).map((game) => <Link key={game.id} to={`/game/${game.id}`} className="game-tile group"><div className="game-art relative border border-border transition-[filter,box-shadow] group-hover:brightness-110 group-hover:shadow-[0_0_16px_color-mix(in_srgb,var(--phosphor)_40%,transparent)]"><img src={`https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${game.id}/header.jpg`} alt={game.name} loading="lazy" onError={(event) => { event.currentTarget.style.visibility = "hidden"; }} /><span aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: "repeating-linear-gradient(to bottom, transparent 0 2px, hsl(0 0% 0% / 0.4) 3px, transparent 4px)" }} /></div><div className="game-tile-title"><h3 className="font-mono">{game.name}</h3><ArrowUpRight size={18} aria-hidden="true" style={{ color: "var(--phosphor)" }} /></div><span className="tile-caption term-prompt">View sources</span></Link>)}
+        {(searching ? results : picks).map((game) => <Link key={game.id} to={`/game/${game.id}`} className="game-tile group"><div className="game-art relative border border-border transition-[filter,box-shadow] group-hover:brightness-110 group-hover:shadow-[0_0_16px_color-mix(in_srgb,var(--phosphor)_40%,transparent)]"><TileArt game={game} /><span aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ background: "repeating-linear-gradient(to bottom, transparent 0 2px, hsl(0 0% 0% / 0.4) 3px, transparent 4px)" }} /></div><div className="game-tile-title"><h3 className="font-mono">{game.name}</h3><ArrowUpRight size={18} aria-hidden="true" style={{ color: "var(--phosphor)" }} /></div><span className="tile-caption term-prompt">View sources</span></Link>)}
         {searching && loading && results.length === 0 && [0, 1, 2, 3].map((key) => <div key={key} className="game-tile skeleton-tile" aria-hidden="true"><div className="game-art skeleton-shimmer" /><div className="skeleton-line skeleton-shimmer" /></div>)}
       </div>
     </section>

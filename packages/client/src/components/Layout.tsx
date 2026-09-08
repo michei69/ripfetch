@@ -22,7 +22,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <span className="header-tag term-prompt">game download index</span>
-          <Link to="/" className="nav-search">
+          <Link to="/" className="nav-search" style={{ minHeight: 44 }}>
             <Search size={16} className="text-phosphor" aria-hidden="true" />
             Find games
           </Link>

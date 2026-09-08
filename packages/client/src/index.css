@@ -58,7 +58,7 @@
   --card-foreground: hsl(38 44% 9%);
   --popover: hsl(45 42% 94%);
   --popover-foreground: hsl(38 44% 9%);
-  --primary: hsl(42 95% 33%); /* amber ink #B07A00 family */
+  --primary: hsl(42 90% 26%); /* amber ink #B07A00 family, AA on cream */
   --primary-foreground: hsl(45 55% 96%);
   --secondary: hsl(45 35% 82%);
   --secondary-foreground: hsl(38 42% 14%);
@@ -66,15 +66,15 @@
   --muted-foreground: hsl(38 32% 32%);
   --accent: hsl(45 55% 80%);
   --accent-foreground: hsl(38 48% 16%);
-  --destructive: hsl(6 70% 40%);
+  --destructive: hsl(6 75% 38%);
   --destructive-foreground: hsl(0 40% 97%);
   --border: hsl(40 30% 70%);
   --input: hsl(40 28% 60%);
   --ring: hsl(42 90% 30%);
-  --phosphor: hsl(42 95% 33%); /* amber accent */
-  --phosphor-dim: hsl(42 60% 45%);
-  --amber: hsl(36 95% 40%); /* warning amber, readable on cream */
-  --cyan-term: hsl(195 85% 30%); /* info / links, readable on cream */
+  --phosphor: hsl(42 95% 24%); /* amber accent */
+  --phosphor-dim: hsl(42 55% 42%);
+  --amber: hsl(36 80% 27%); /* warning amber, readable on cream */
+  --cyan-term: hsl(195 90% 27%); /* info / links, readable on cream */
 }
 
 .dark {
@@ -92,7 +92,7 @@
   --muted-foreground: hsl(135 25% 60%); /* dim phosphor */
   --accent: hsl(133 30% 16%);
   --accent-foreground: hsl(135 100% 70%);
-  --destructive: hsl(0 70% 58%); /* readable red */
+  --destructive: hsl(0 75% 66%); /* readable red */
   --destructive-foreground: hsl(0 40% 97%);
   --border: hsl(135 18% 19%);
   --input: hsl(135 18% 28%);
@@ -463,7 +463,6 @@ body::after {
   min-width: 0;
   background: transparent;
   border: 0;
-  outline: none;
   font-family: var(--font-mono);
   font-size: 16px;
   color: var(--foreground);
@@ -743,6 +742,35 @@ body::after {
   }
 }
 
+/* workspace stacks below ~900px (activity panel below results) */
+@media (max-width: 900px) {
+  .download-workspace {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .download-results,
+  .activity-panel {
+    width: 100%;
+  }
+
+  .download-results {
+    order: 0;
+  }
+
+  .activity-panel {
+    order: 1;
+    position: static;
+    top: auto;
+  }
+
+  .activity-panel ul {
+    max-height: 220px;
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 760px) {
   .shell {
     width: calc(100% - 32px);
@@ -787,32 +815,6 @@ body::after {
 
   .game-title a {
     font-size: 28px;
-  }
-
-  .download-workspace {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-
-  .download-results,
-  .activity-panel {
-    width: 100%;
-  }
-
-  .download-results {
-    order: 0;
-  }
-
-  .activity-panel {
-    order: 1;
-    position: static;
-    top: auto;
-  }
-
-  .activity-panel ul {
-    max-height: 220px;
-    overflow-y: auto;
   }
 
   .app-footer {
