@@ -163,3 +163,12 @@ export function hostnameOf(url: string): string {
         return url.length > 34 ? `${url.slice(0, 34)}…` : url;
     }
 }
+
+/**
+ * Stable element id from arbitrary label parts, for pairing a control with the
+ * region it expands. Source and release names contain spaces, dots and slashes,
+ * so every part is reduced to the id-safe subset before joining.
+ */
+export function domId(...parts: string[]): string {
+    return parts.map((part) => part.replace(/[^a-zA-Z0-9_-]/g, "-")).join("--");
+}

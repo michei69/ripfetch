@@ -7,7 +7,14 @@ import {
   type ReactNode,
 } from "react";
 import { useParams, Link } from "react-router";
-import { ArrowLeft, Check, Copy, ExternalLink, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "react-toastify";
 import { SourceWarningModal, WARNINGS } from "../components/ui/source-warning";
 import { GamePageSkeleton } from "../components/skeleton";
@@ -22,6 +29,7 @@ import {
 } from "../lib/steam";
 import { recordRecentGame } from "../lib/recentlyViewed";
 import {
+  domId,
   groupByHost,
   hostFlags,
   hostnameOf,
@@ -111,6 +119,16 @@ function parseDownloads(
 
 // ─── page ──────────────────────────────────────────────────────────────────
 
+/** Derives the next state for a set of collapsed keys. */
+function toggled(key: string) {
+  return (previous: Set<string>) => {
+    const next = new Set(previous);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  };
+}
+
 export default function GamePage() {
   const { id } = useParams<{ id: string }>();
   const [steam, setSteam] = useState<SteamInfo | null>(null);
@@ -124,6 +142,12 @@ export default function GamePage() {
   const [requestStatus, setRequestStatus] = useState("Connecting");
   const [attempt, setAttempt] = useState(0);
   const [filter, setFilter] = useState<string | null>(null);
+  /** Collapsed source groups, keyed by group key. */
+  const [collapsedSources, setCollapsedSources] = useState<Set<string>>(
+    new Set(),
+  );
+  /** Collapsed host bands, keyed by their body element id. */
+  const [collapsedHosts, setCollapsedHosts] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState<string | null>(null);
   /** Index into the banner art candidates; advances when one fails to load. */
   const [heroStep, setHeroStep] = useState(0);
@@ -148,6 +172,8 @@ export default function GamePage() {
     setDownloads({});
     setProgress(0);
     setFilter(null);
+    setCollapsedSources(new Set());
+    setCollapsedHosts(new Set());
 
     const stream = new EventSource(
       `${API_BASE_URL}/api/game/${encodeURIComponent(id)}/stream`,
@@ -283,6 +309,38 @@ export default function GamePage() {
     } catch {
       toast.error("Failed to copy link");
     }
+  };
+
+  /**
+   * Gates an outgoing link behind its source warning. Both the release label
+   * and the row's open button run this, so the two behave identically.
+   */
+  const openLink = (
+    event: MouseEvent<HTMLAnchorElement>,
+    url: string,
+    domain: string,
+    source: string,
+  ) => {
+    if (
+      !WARNINGS[source] ||
+      localStorage.getItem(`ripfetch_warning_dismissed_${source}`) === "true"
+    ) {
+      return;
+    }
+    event.preventDefault();
+    setPendingLink({ url, domain, source });
+  };
+
+  /** Filtering to a source is a request to see it, so expand it. */
+  const selectSource = (key: string | null) => {
+    setFilter(key);
+    if (!key) return;
+    setCollapsedSources((previous) => {
+      if (!previous.has(key)) return previous;
+      const next = new Set(previous);
+      next.delete(key);
+      return next;
+    });
   };
 
   /** Sources that produced at least one link, keyed by display name. */
@@ -435,15 +493,6 @@ export default function GamePage() {
 
   return (
     <section className="game-page">
-      {steam.header_image && (
-        <div className="wash" aria-hidden="true">
-          <div
-            className="wash-img"
-            style={{ backgroundImage: `url("${steam.header_image}")` }}
-          />
-        </div>
-      )}
-
       {crumbs}
 
       <header className="hero">
@@ -477,7 +526,9 @@ export default function GamePage() {
 
         <div className="hero-body">
           {steam.short_description && (
-            <p className="hero-desc">{steam.short_description}</p>
+            <div>
+              <p className="hero-desc">{steam.short_description}</p>
+            </div>
           )}
 
           <dl className="facts">
@@ -594,7 +645,7 @@ export default function GamePage() {
                 type="button"
                 className="tab"
                 aria-pressed={filter === null}
-                onClick={() => setFilter(null)}
+                onClick={() => selectSource(null)}
               >
                 All
                 <span className="tab-count">{linkCount}</span>
@@ -606,7 +657,7 @@ export default function GamePage() {
                   className="tab"
                   aria-pressed={filter === group.key}
                   onClick={() =>
-                    setFilter(filter === group.key ? null : group.key)
+                    selectSource(filter === group.key ? null : group.key)
                   }
                 >
                   {group.source}
@@ -616,151 +667,209 @@ export default function GamePage() {
             </div>
 
             <div className="dl-table">
-              {visible.map((group) => (
-                <section
-                  key={group.key}
-                  className="dl-group"
-                  aria-labelledby={`src-${group.key.replace(/[^a-zA-Z0-9_-]/g, "-")}`}
-                >
-                  <div className="dl-group-head">
-                    <h3
-                      className="dl-group-name"
-                      id={`src-${group.key.replace(/[^a-zA-Z0-9_-]/g, "-")}`}
-                    >
-                      {group.source}
-                    </h3>
-                    {group.title && (
-                      <>
-                        <span className="crumb-sep">/</span>
-                        <span className="mono text-[12px] text-ink-mute">
-                          {group.title}
-                        </span>
-                      </>
-                    )}
-                    <span className="dl-group-meta">
-                      {group.count} link{group.count === 1 ? "" : "s"} ·{" "}
-                      {group.hosts.length} host
-                      {group.hosts.length === 1 ? "" : "s"}
-                    </span>
-                  </div>
+              {visible.map((group) => {
+                const sourceKey = group.source.toLowerCase();
+                const headingId = domId("src-head", group.key);
+                const bodyId = domId("src-body", group.key);
+                const isCollapsed = collapsedSources.has(group.key);
 
-                  {group.hosts.map((host) => {
-                    const flags = hostFlags(host.host);
-                    const tone = flags.slow
-                      ? "slow"
-                      : flags.trusted
-                        ? "fast"
-                        : flags.proxied
-                          ? "proxied"
-                          : undefined;
-                    return (
-                      <div className="host" key={host.host} data-tone={tone}>
-                        <div className="host-head">
-                          <h4 className="host-name">{host.host}</h4>
-                          {flags.trusted && (
-                            <span className="tag" data-tone="fast">
-                              <span className="tag-dot" aria-hidden="true" />
-                              fast
+                return (
+                  <section
+                    key={group.key}
+                    className="dl-group"
+                    aria-labelledby={headingId}
+                  >
+                    <h3 className="dl-group-head" id={headingId}>
+                      <button
+                        type="button"
+                        className="dl-toggle"
+                        aria-expanded={!isCollapsed}
+                        aria-controls={bodyId}
+                        onClick={() => setCollapsedSources(toggled(group.key))}
+                      >
+                        <ChevronDown
+                          className="toggle-chevron"
+                          size={15}
+                          aria-hidden="true"
+                        />
+                        <span className="dl-group-name">{group.source}</span>
+                        {group.title && (
+                          <>
+                            <span className="crumb-sep">/</span>
+                            <span className="mono text-[12px] text-ink-mute">
+                              {group.title}
                             </span>
-                          )}
-                          {flags.slow && (
-                            <span className="tag" data-tone="slow">
-                              <span className="tag-dot" aria-hidden="true" />
-                              slow
-                            </span>
-                          )}
-                          {flags.proxied && (
-                            <span className="tag" data-tone="proxied">
-                              <span className="tag-dot" aria-hidden="true" />
-                              proxied
-                            </span>
-                          )}
-                          <span className="host-count">
-                            {host.releases.length} file
-                            {host.releases.length === 1 ? "" : "s"}
-                          </span>
-                        </div>
-
-                        {/* Column labels only earn their row once a host
-                            actually lists more than one file. */}
-                        {host.releases.length > 1 && (
-                          <div className="link-head label" aria-hidden="true">
-                            <span>Release</span>
-                            <span>Resolves to</span>
-                            <span />
-                          </div>
+                          </>
                         )}
+                        <span className="dl-group-meta">
+                          {group.count} link{group.count === 1 ? "" : "s"} ·{" "}
+                          {group.hosts.length} host
+                          {group.hosts.length === 1 ? "" : "s"}
+                        </span>
+                      </button>
+                    </h3>
 
-                        <ul className="link-table">
-                          {host.releases.map((release) => {
-                            const uid = `${group.key}::${release.label}`;
-                            const isCopied = copied === uid;
-                            const resolved = hostnameOf(release.url);
+                    <div id={bodyId} hidden={isCollapsed}>
+                      {group.hosts.map((host) => {
+                        const flags = hostFlags(host.host);
+                        const tone = flags.slow
+                          ? "slow"
+                          : flags.trusted
+                            ? "fast"
+                            : flags.proxied
+                              ? "proxied"
+                              : undefined;
+                        const hostBodyId = domId(
+                          "host-body",
+                          group.key,
+                          host.host,
+                        );
+                        const hostCollapsed = collapsedHosts.has(hostBodyId);
 
-                            return (
-                              <li key={uid} className="link-row">
-                                <p className="link-label">{release.label}</p>
-                                <p className="link-host">{resolved}</p>
-                                <div className="link-actions">
-                                  <button
-                                    type="button"
-                                    className="btn"
-                                    data-size="icon"
-                                    data-variant="quiet"
-                                    onClick={() => copyLink(release.url, uid)}
-                                    aria-label={`Copy ${release.label}`}
-                                    title="Copy link"
-                                  >
-                                    {isCopied ? (
-                                      <Check size={15} aria-hidden="true" />
-                                    ) : (
-                                      <Copy size={15} aria-hidden="true" />
-                                    )}
-                                  </button>
-                                  <a
-                                    className="btn"
-                                    data-size="icon"
-                                    data-variant="quiet"
-                                    href={release.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label={`Open ${release.label} on ${resolved}`}
-                                    title="Open link"
-                                    onClick={(
-                                      event: MouseEvent<HTMLAnchorElement>,
-                                    ) => {
-                                      const source = group.source.toLowerCase();
-                                      if (
-                                        !WARNINGS[source] ||
-                                        localStorage.getItem(
-                                          `ripfetch_warning_dismissed_${source}`,
-                                        ) === "true"
-                                      ) {
-                                        return;
-                                      }
-                                      event.preventDefault();
-                                      setPendingLink({
-                                        url: release.url,
-                                        domain: resolved,
-                                        source,
-                                      });
-                                    }}
-                                  >
-                                    <ExternalLink
-                                      size={15}
-                                      aria-hidden="true"
-                                    />
-                                  </a>
+                        return (
+                          <div
+                            className="host"
+                            key={host.host}
+                            data-tone={tone}
+                          >
+                            <h4 className="host-head">
+                              <button
+                                type="button"
+                                className="host-toggle"
+                                aria-expanded={!hostCollapsed}
+                                aria-controls={hostBodyId}
+                                onClick={() =>
+                                  setCollapsedHosts(toggled(hostBodyId))
+                                }
+                              >
+                                <ChevronDown
+                                  className="toggle-chevron"
+                                  size={14}
+                                  aria-hidden="true"
+                                />
+                                <span className="host-name">{host.host}</span>
+                                {flags.trusted && (
+                                  <span className="tag" data-tone="fast">
+                                    fast
+                                  </span>
+                                )}
+                                {flags.slow && (
+                                  <span className="tag" data-tone="slow">
+                                    slow
+                                  </span>
+                                )}
+                                {flags.proxied && (
+                                  <span className="tag" data-tone="proxied">
+                                    proxied
+                                  </span>
+                                )}
+                                <span className="host-count">
+                                  {host.releases.length} file
+                                  {host.releases.length === 1 ? "" : "s"}
+                                </span>
+                              </button>
+                            </h4>
+
+                            <div id={hostBodyId} hidden={hostCollapsed}>
+                              {/* Column labels only earn their row once a
+                                  host actually lists more than one file. */}
+                              {host.releases.length > 1 && (
+                                <div
+                                  className="link-head label"
+                                  aria-hidden="true"
+                                >
+                                  <span>Release</span>
+                                  <span>Resolves to</span>
+                                  <span />
                                 </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    );
-                  })}
-                </section>
-              ))}
+                              )}
+
+                              <ul className="link-table">
+                                {host.releases.map((release) => {
+                                  const uid = `${group.key}::${release.label}`;
+                                  const isCopied = copied === uid;
+                                  const resolved = hostnameOf(release.url);
+
+                                  return (
+                                    <li key={uid} className="link-row">
+                                      <a
+                                        className="link-label"
+                                        href={release.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        aria-label={`Open ${release.label} on ${resolved}`}
+                                        onClick={(event) =>
+                                          openLink(
+                                            event,
+                                            release.url,
+                                            resolved,
+                                            sourceKey,
+                                          )
+                                        }
+                                      >
+                                        {release.label}
+                                      </a>
+                                      <p className="link-host">{resolved}</p>
+                                      <div className="link-actions">
+                                        <button
+                                          type="button"
+                                          className="btn"
+                                          data-size="icon"
+                                          data-variant="quiet"
+                                          onClick={() =>
+                                            copyLink(release.url, uid)
+                                          }
+                                          aria-label={`Copy ${release.label}`}
+                                          title="Copy link"
+                                        >
+                                          {isCopied ? (
+                                            <Check
+                                              size={15}
+                                              aria-hidden="true"
+                                            />
+                                          ) : (
+                                            <Copy
+                                              size={15}
+                                              aria-hidden="true"
+                                            />
+                                          )}
+                                        </button>
+                                        <a
+                                          className="btn"
+                                          data-size="icon"
+                                          data-variant="quiet"
+                                          href={release.url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          aria-label={`Open ${release.label} on ${resolved}`}
+                                          title="Open link"
+                                          onClick={(event) =>
+                                            openLink(
+                                              event,
+                                              release.url,
+                                              resolved,
+                                              sourceKey,
+                                            )
+                                          }
+                                        >
+                                          <ExternalLink
+                                            size={15}
+                                            aria-hidden="true"
+                                          />
+                                        </a>
+                                      </div>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
 
               {streaming &&
                 searched

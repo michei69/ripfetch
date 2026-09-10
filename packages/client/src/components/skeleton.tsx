@@ -14,8 +14,10 @@ export function GamePageSkeleton() {
       <Skeleton className="hero-banner" />
 
       <div className="hero-body">
-        <Skeleton className="h-4 w-full max-w-2xl" />
-        <Skeleton className="mt-2 h-4 w-2/3 max-w-xl" />
+        <div>
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-2/3" />
+        </div>
 
         <div className="facts">
           <Skeleton className="h-8 w-full" />
