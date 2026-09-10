@@ -15,7 +15,11 @@ import { Progress } from "../components/ui/progress";
 import { API_BASE_URL } from "../lib/config";
 import { isJsonObject, parseEventData } from "../lib/sse";
 import { isSafeExternalUrl } from "../lib/urls";
-import { isSafeSteamImageUrl, steamHeaderUrl } from "../lib/steam";
+import {
+  isSafeSteamImageUrl,
+  steamHeaderUrl,
+  steamHeroUrl,
+} from "../lib/steam";
 import { recordRecentGame } from "../lib/recentlyViewed";
 import {
   groupByHost,
@@ -121,6 +125,8 @@ export default function GamePage() {
   const [attempt, setAttempt] = useState(0);
   const [filter, setFilter] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  /** Index into the banner art candidates; advances when one fails to load. */
+  const [heroStep, setHeroStep] = useState(0);
   const copyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pendingLink, setPendingLink] = useState<{
     url: string;
@@ -247,6 +253,8 @@ export default function GamePage() {
     [],
   );
 
+  useEffect(() => setHeroStep(0), [id]);
+
   useEffect(() => {
     const numericId = Number(id);
     if (!steam || !Number.isSafeInteger(numericId) || numericId <= 0) return;
@@ -372,17 +380,9 @@ export default function GamePage() {
   const steamUrl = `https://store.steampowered.com/app/${encodeURIComponent(id ?? "")}`;
 
   const facts: Array<{ term: string; value: ReactNode; mono?: boolean }> = [
-    steam.developers.length > 0 && {
-      term: "Developer",
-      value: steam.developers.join(", "),
-    },
     steam.publishers.length > 0 && {
       term: "Publisher",
       value: steam.publishers.join(", "),
-    },
-    steam.genres.length > 0 && {
-      term: "Genre",
-      value: steam.genres.join(", "),
     },
     (steam.is_free || steam.price) && {
       term: "Steam price",
@@ -409,6 +409,30 @@ export default function GamePage() {
     mono?: boolean;
   }>;
 
+  // Banner art: the cinematic library hero when Steam has one, else the
+  // always-present header capsule, else none at all.
+  const heroCandidates = [
+    id ? steamHeroUrl(id) : "",
+    steam.header_image,
+  ].filter((url) => url.length > 0);
+  const heroArt = heroCandidates[heroStep];
+
+  const meta = (
+    <>
+      {steam.developers.length > 0 && (
+        <span>{steam.developers.join(", ")}</span>
+      )}
+      {steam.genres.length > 0 && (
+        <>
+          <span className="sep">/</span>
+          <span>{steam.genres.join(", ")}</span>
+        </>
+      )}
+      <span className="sep">/</span>
+      <span>appid {id}</span>
+    </>
+  );
+
   return (
     <section className="game-page">
       {steam.header_image && (
@@ -423,19 +447,35 @@ export default function GamePage() {
       {crumbs}
 
       <header className="hero">
-        {steam.header_image && (
-          <div className="hero-art">
-            <img src={steam.header_image} alt="" />
+        {heroArt ? (
+          <div className="hero-banner">
+            <img
+              src={heroArt}
+              alt=""
+              onError={() => setHeroStep((step) => step + 1)}
+            />
+            <div className="hero-veil" aria-hidden="true" />
+            <div className="hero-banner-body">
+              <h1 className="hero-title">
+                <a href={steamUrl} target="_blank" rel="noopener noreferrer">
+                  {steam.name}
+                </a>
+              </h1>
+              <p className="hero-meta">{meta}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="hero-plain">
+            <h1 className="hero-title">
+              <a href={steamUrl} target="_blank" rel="noopener noreferrer">
+                {steam.name}
+              </a>
+            </h1>
+            <p className="hero-meta">{meta}</p>
           </div>
         )}
 
-        <div className="min-w-0">
-          <h1 className="hero-title">
-            <a href={steamUrl} target="_blank" rel="noopener noreferrer">
-              {steam.name}
-            </a>
-          </h1>
-
+        <div className="hero-body">
           {steam.short_description && (
             <p className="hero-desc">{steam.short_description}</p>
           )}
@@ -606,26 +646,50 @@ export default function GamePage() {
 
                   {group.hosts.map((host) => {
                     const flags = hostFlags(host.host);
+                    const tone = flags.slow
+                      ? "slow"
+                      : flags.trusted
+                        ? "fast"
+                        : flags.proxied
+                          ? "proxied"
+                          : undefined;
                     return (
-                      <div key={host.host}>
+                      <div className="host" key={host.host} data-tone={tone}>
                         <div className="host-head">
                           <h4 className="host-name">{host.host}</h4>
-                          {flags.trusted && <span className="tag">fast</span>}
+                          {flags.trusted && (
+                            <span className="tag" data-tone="fast">
+                              <span className="tag-dot" aria-hidden="true" />
+                              fast
+                            </span>
+                          )}
                           {flags.slow && (
-                            <span className="tag" data-tone="warn">
+                            <span className="tag" data-tone="slow">
+                              <span className="tag-dot" aria-hidden="true" />
                               slow
                             </span>
                           )}
                           {flags.proxied && (
-                            <span className="tag">proxied</span>
+                            <span className="tag" data-tone="proxied">
+                              <span className="tag-dot" aria-hidden="true" />
+                              proxied
+                            </span>
                           )}
+                          <span className="host-count">
+                            {host.releases.length} file
+                            {host.releases.length === 1 ? "" : "s"}
+                          </span>
                         </div>
 
-                        <div className="link-head label" aria-hidden="true">
-                          <span>Release</span>
-                          <span>Resolves to</span>
-                          <span />
-                        </div>
+                        {/* Column labels only earn their row once a host
+                            actually lists more than one file. */}
+                        {host.releases.length > 1 && (
+                          <div className="link-head label" aria-hidden="true">
+                            <span>Release</span>
+                            <span>Resolves to</span>
+                            <span />
+                          </div>
+                        )}
 
                         <ul className="link-table">
                           {host.releases.map((release) => {

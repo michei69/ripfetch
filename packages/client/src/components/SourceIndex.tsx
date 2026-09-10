@@ -2,7 +2,7 @@ import { SOURCES, SOURCE_COUNT, SOURCE_RANK } from "../lib/sources";
 
 const NOTE_TONE: Record<string, string> = {
   "zip password": "warn",
-  slow: "warn",
+  slow: "slow",
   "malware risk": "danger",
   adblocker: "warn",
 };
