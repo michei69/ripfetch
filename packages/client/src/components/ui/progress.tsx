@@ -1,22 +1,34 @@
 import { cn } from "../../lib/utils";
 
-interface ProgressProps {
-  value: number; // 0-100
+type ProgressProps = {
+  value: number;
   className?: string;
-}
+  label?: string;
+};
 
-export function Progress({ value, className }: ProgressProps) {
+/**
+ * A hairline measure of how many sources have answered. Deliberately thin: the
+ * page is an index, so the progress indicator reads as a rule that fills.
+ */
+export function Progress({ value, className, label }: ProgressProps) {
+  const clamped = Math.max(0, Math.min(100, value));
+
   return (
-    <div
-      className={cn(
-        "h-3 border border-border bg-muted overflow-hidden",
-        className,
-      )}
-    >
+    <div className={cn("progress", className)}>
       <div
-        className="h-full bg-primary [background-image:repeating-linear-gradient(90deg,var(--primary)_0_8px,var(--background)_8px_10px)] transition-[width] duration-300 ease-out"
-        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-      />
+        className="progress-track"
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(clamped)}
+      >
+        <div
+          className="progress-fill"
+          style={{ transform: `scaleX(${clamped / 100})` }}
+        />
+      </div>
+      <span className="progress-num">{Math.round(clamped)}%</span>
     </div>
   );
 }

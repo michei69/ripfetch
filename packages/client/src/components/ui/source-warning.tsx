@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { ExternalLink, TriangleAlert, X, Copy, Check } from "lucide-react";
-import { Button } from "./button";
 
 type SourceWarningModalProps = {
   open: boolean;
@@ -10,7 +9,7 @@ type SourceWarningModalProps = {
   onConfirm: () => void;
   onDismiss: () => void;
   onDismissPermanently: () => void;
-}
+};
 
 const CopyClickCode = ({ children }: { children: string }) => {
   const [work, setWork] = useState(false);
@@ -43,12 +42,13 @@ const CopyClickCode = ({ children }: { children: string }) => {
     <button
       type="button"
       aria-label={`Copy password ${children}`}
-      className={`cursor-pointer hover:brightness-75 inline-flex flex-row items-center ml-2 font-mono ${work ? "text-phosphor" : ""} ${error ? "text-destructive" : ""}`}
+      className={`mono inline-flex cursor-pointer items-center gap-1.5 border-b border-dashed border-line-strong align-baseline text-[12.5px] text-ink ${work ? "text-ink-mute" : ""} ${error ? "text-danger" : ""}`}
       onClick={copyLink}
     >
-      {children} {!work && !error && <Copy className="w-3 h-3 mr-2 ml-1" />}
-      {work && <Check className="w-3 h-3 mr-2 ml-1" />}
-      {error && <X className="w-3 h-3 mr-2 ml-1" />}
+      {children}
+      {!work && !error && <Copy className="size-3" aria-hidden="true" />}
+      {work && <Check className="size-3" aria-hidden="true" />}
+      {error && <X className="size-3" aria-hidden="true" />}
     </button>
   );
 };
@@ -73,13 +73,13 @@ const WARNINGS: Record<string, { title: string; body: ReactNode }> = {
     ),
   },
   igg: {
-    title: "Beware of Malware!",
+    title: "Beware of malware",
     body: (
       <>
         IGG Games (and its many clones) have been caught embedding their own
         DRM, crypto miners, etc. into their repacked games. Please be wary of
         any suspicious files. This source is still available here just in case
-        there's no other one. Just be careful and have fun!
+        there&apos;s no other one. Just be careful and have fun!
       </>
     ),
   },
@@ -94,51 +94,50 @@ const WARNINGS: Record<string, { title: string; body: ReactNode }> = {
     ),
   },
   dodirepacks: {
-    title: "Use an adblocker!",
+    title: "Use an adblocker",
     body: (
       <>
         Please use{" "}
-        <a
-          href="https://www.firefox.com/"
-          className="inline-flex flex-row items-center hover:brightness-75"
-        >
-          Firefox <ExternalLink className="h-3 w-3 ml-1" />
+        <a href="https://www.firefox.com/" target="_blank" rel="noreferrer">
+          Firefox
         </a>{" "}
         +{" "}
         <a
           href="https://addons.mozilla.org/en-GB/firefox/addon/ublock-origin/"
-          className="inline-flex flex-row items-center hover:brightness-75"
+          target="_blank"
+          rel="noreferrer"
         >
-          uBlock Origin <ExternalLink className="h-3 w-3 ml-1" />
+          uBlock Origin
         </a>{" "}
         +{" "}
         <a
           href="https://violentmonkey.github.io/"
-          className="inline-flex flex-row items-center hover:brightness-75"
+          target="_blank"
+          rel="noreferrer"
         >
-          ViolentMonkey <ExternalLink className="h-3 w-3 ml-1" />
+          ViolentMonkey
         </a>{" "}
         +{" "}
         <a
           href="https://codeberg.org/Amm0ni4/bypass-all-shortlinks-debloated"
-          className="inline-flex flex-row items-center hover:brightness-75"
+          target="_blank"
+          rel="noreferrer"
         >
-          bypass-all-shortlinks-debloated{" "}
-          <ExternalLink className="h-3 w-3 ml-1" />
+          bypass-all-shortlinks-debloated
         </a>
-        . Dodi's download links are shoved through layers of ad-powered
-        redirects. Trust me, you don't want to go through them manually.
+        . Dodi&apos;s download links are shoved through layers of ad-powered
+        redirects. Trust me, you don&apos;t want to go through them manually.
       </>
     ),
   },
   game3rb: {
-    title: "Beware of Malware!",
+    title: "Beware of malware",
     body: (
       <>
         Game3rb sometimes embeds malicious links / ads into their webpage, which
-        this scraper is unable to detect. Please make sure you're downloading
-        from a legitimate file hoster. If you're unsure, try using other
-        sources.
+        this scraper is unable to detect. Please make sure you&apos;re
+        downloading from a legitimate file hoster. If you&apos;re unsure, try
+        using other sources.
       </>
     ),
   },
@@ -153,84 +152,91 @@ export function SourceWarningModal({
   onDismissPermanently,
 }: SourceWarningModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const [activeSource, setActiveSource] = useState(source);
+
+  // Keep the last real source around while the dialog closes so the
+  // element stays mounted and focus restoration can run.
+  useEffect(() => {
+    if (source) setActiveSource(source);
+  }, [source]);
+
+  const warning = WARNINGS[activeSource];
 
   useEffect(() => {
-    const el = dialogRef.current;
-    if (!el) return;
-    if (open && !el.open) el.showModal();
-    if (!open && el.open) el.close();
-  }, [open]);
+    const element = dialogRef.current;
+    if (!element) return;
 
-  const warning = WARNINGS[source];
+    if (open && !element.open) {
+      returnFocusRef.current = document.activeElement as HTMLElement | null;
+      element.showModal();
+    } else if (!open && element.open) {
+      element.close();
+      returnFocusRef.current?.focus();
+      returnFocusRef.current = null;
+    }
+  }, [open, activeSource]);
 
-  if (!open || !warning) return null;
+  if (!warning) return null;
 
   return (
     <dialog
       ref={dialogRef}
       aria-labelledby="source-warning-title"
       aria-describedby="source-warning-body"
-      className="fixed inset-0 z-50 m-auto w-full max-w-md border bg-background p-0 shadow-2xl backdrop:bg-black/55 open:animate-in fade-in"
+      className="warning-dialog"
       onCancel={onDismiss}
     >
-      <div className="flex items-center justify-between gap-3 border-b bg-muted px-4 py-2">
-        <h3
-          id="source-warning-title"
-          className="font-mono text-sm font-medium text-foreground"
-        >
-          <span className="mr-2 text-amber">[!]</span>
-          {warning.title}
-        </h3>
+      <div className="dialog-head">
+        <span className="mt-0.5 flex-none text-warn">
+          <TriangleAlert size={18} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 id="source-warning-title" className="dialog-title">
+            {warning.title}
+          </h3>
+          <p className="dialog-sub">
+            redirecting to <span className="text-ink">{domain}</span>
+          </p>
+        </div>
         <button
           type="button"
           onClick={onDismiss}
           aria-label="Close warning"
-          className="p-1 text-muted-foreground transition-colors hover:text-foreground"
+          className="btn"
+          data-size="icon"
+          data-variant="quiet"
         >
-          <X className="h-4 w-4" />
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
 
-      <div className="p-6">
-        <div className="mb-5 flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center border border-amber/50 bg-amber/10">
-            <TriangleAlert className="h-5 w-5 text-amber" />
-          </div>
-          <p
-            id="source-warning-body"
-            className="min-w-0 flex-1 text-sm leading-relaxed text-muted-foreground"
-          >
-            {warning.body}
-          </p>
-        </div>
+      <p id="source-warning-body" className="dialog-body">
+        {warning.body}
+      </p>
 
-        <p className="mb-6 text-xs leading-relaxed text-muted-foreground">
-          Redirecting to:{" "}
-          <span className="text-foreground">{domain}</span>
-        </p>
-
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button onClick={onConfirm} className="flex-1 rounded-none">
-            <ExternalLink className="h-4 w-4" />
-            Continue Anyway
-          </Button>
-          <Button
-            variant="outline"
-            className="rounded-none text-foreground"
-            onClick={onDismiss}
-          >
-            Go Back
-          </Button>
-        </div>
-
+      <div className="dialog-actions">
         <button
           type="button"
-          onClick={onDismissPermanently}
-          className="mt-4 w-full text-center text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
+          className="btn"
+          data-variant="solid"
+          onClick={onConfirm}
         >
-          Don&apos;t show this warning for {source} again
+          <ExternalLink size={15} aria-hidden="true" />
+          Continue anyway
+        </button>
+        <button type="button" className="btn" data-grow="0" onClick={onDismiss}>
+          Go back
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={onDismissPermanently}
+        className="dialog-dismiss"
+      >
+        Don&apos;t show this warning for {activeSource} again
+      </button>
     </dialog>
   );
 }
