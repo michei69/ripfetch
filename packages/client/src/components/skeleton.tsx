@@ -11,9 +11,9 @@ export function Skeleton({ className }: { className?: string }) {
 export function GamePageSkeleton() {
   return (
     <div aria-hidden="true">
-      <Skeleton className="hero-banner" />
+      <div className="hero">
+        <Skeleton className="hero-banner" />
 
-      <div className="hero-body">
         <div>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="mt-2 h-4 w-2/3" />

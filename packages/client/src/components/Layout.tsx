@@ -33,7 +33,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <RailSearch />
 
         {recents.length > 0 && (
-          <section>
+          <section className="rail-recents">
             <p className="label mb-1">Recently viewed</p>
             <div className="border-t border-line-soft">
               {recents.slice(0, 5).map((game) => (
@@ -58,8 +58,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <footer className="app-footer">
-          ripfetch indexes download pages published by third parties and never
-          hosts, mirrors or verifies them. Download safety is not guaranteed.
+          <p className="app-footer-note">
+            ripfetch indexes download pages published by third parties and never
+            hosts, mirrors or verifies them. Download safety is not guaranteed.
+          </p>
         </footer>
       </div>
     </div>

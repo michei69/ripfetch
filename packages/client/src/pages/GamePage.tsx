@@ -284,10 +284,13 @@ export default function GamePage() {
   useEffect(() => {
     const numericId = Number(id);
     if (!steam || !Number.isSafeInteger(numericId) || numericId <= 0) return;
+    // Steam's API returns the real asset URL, which carries a per-app hash
+    // segment; the synthesised path 404s for every app published since the
+    // asset layout changed, so the API's copy wins whenever it is there.
     recordRecentGame({
       id: numericId,
       name: steam.name,
-      cover: steamHeaderUrl(numericId),
+      cover: steam.header_image || steamHeaderUrl(numericId),
     });
   }, [steam, id]);
 
@@ -524,28 +527,24 @@ export default function GamePage() {
           </div>
         )}
 
-        <div className="hero-body">
-          {steam.short_description && (
-            <div>
-              <p className="hero-desc">{steam.short_description}</p>
-            </div>
-          )}
+        {steam.short_description && (
+          <p className="hero-desc">{steam.short_description}</p>
+        )}
 
-          <dl className="facts">
-            {facts.map((fact) => (
-              <div key={fact.term} className="fact">
-                <dt className="fact-term">{fact.term}</dt>
-                <dd
-                  className={
-                    fact.mono ? "fact-value fact-value-mono" : "fact-value"
-                  }
-                >
-                  {fact.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+        <dl className="facts">
+          {facts.map((fact) => (
+            <div key={fact.term} className="fact">
+              <dt className="fact-term">{fact.term}</dt>
+              <dd
+                className={
+                  fact.mono ? "fact-value fact-value-mono" : "fact-value"
+                }
+              >
+                {fact.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </header>
 
       <section className="mt-14" aria-labelledby="downloads-heading">

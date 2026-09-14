@@ -9,7 +9,9 @@ export type RecentGame = {
 
 export const RECENTS_UPDATED_EVENT = "ripfetch:recents-updated";
 
-const STORAGE_KEY = "ripfetch:recent-games:v1";
+// v2: v1 stored hashless header URLs, which can never load on apps published
+// after Steam moved its assets behind per-app hashes.
+const STORAGE_KEY = "ripfetch:recent-games:v2";
 const MAX_RECENT_GAMES = 10;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

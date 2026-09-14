@@ -359,6 +359,10 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--ink-faint);
+}
+
+/* The rule spans the pane; only the sentence keeps a readable measure. */
+.app-footer-note {
   max-width: 78ch;
 }
 
@@ -552,10 +556,13 @@
 .result-row .result-fallback {
   width: 64px;
   aspect-ratio: 460 / 215;
-  object-fit: cover;
-  display: block;
   background: var(--panel-2);
   border: 1px solid var(--line-soft);
+}
+
+.result-row img {
+  object-fit: cover;
+  display: block;
 }
 
 .result-fallback {
@@ -664,8 +671,28 @@
   opacity: 0.5;
 }
 
+/* Banner, description and fact table share one grid so the facts sit in line
+   with the banner rather than under it. Queried on the content width, not the
+   viewport: the rail changes how much room this has, and content width drops
+   sharply the moment the rail appears. The threshold keeps the banner wider
+   than the 360px fact column beside it. */
 .hero {
   position: relative;
+  display: grid;
+  gap: 24px 44px;
+  align-items: start;
+}
+
+@container game (min-width: 820px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+
+  /* Facts run down the right of the banner, starting level with its top. */
+  .hero > .facts {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
 }
 
 /* The game's own cinematic art, full width, with the title laid over it. */
@@ -676,6 +703,15 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-panel);
   background: var(--panel-2);
+}
+
+/* Once the fact column takes its share the banner keeps that width for its
+   height too; a viewport-sized height would crop the art into a square. */
+@container game (min-width: 820px) {
+  .hero-banner {
+    height: auto;
+    aspect-ratio: 8 / 3;
+  }
 }
 
 .hero-banner img {
@@ -755,29 +791,6 @@
 
 .hero-meta .sep {
   opacity: 0.45;
-}
-
-.hero-body {
-  margin-top: 24px;
-  display: grid;
-  gap: 28px 44px;
-  align-items: start;
-}
-
-/* Put the description and the fact table side by side once there is room, so
-   the pair costs one band of vertical space instead of two. Queried on the
-   content width, not the viewport: the rail changes how much room this has,
-   and content width drops sharply the moment the rail appears. The threshold
-   keeps the description wider than the 360px fact column it sits beside. */
-@container game (min-width: 820px) {
-  .hero-body {
-    grid-template-columns: minmax(0, 1fr) 360px;
-  }
-
-  /* Nothing to sit beside: the facts take the full width. */
-  .hero-body > .facts:only-child {
-    grid-column: 1 / -1;
-  }
 }
 
 .hero-desc {
@@ -1651,6 +1664,11 @@
     display: none;
   }
 
+  /* The index page already carries the same list as "Continue". */
+  .rail-recents {
+    display: none;
+  }
+
   .app-content {
     padding: 24px 16px 56px;
   }
@@ -1671,8 +1689,7 @@
     padding: 18px 16px;
   }
 
-  .hero-body {
-    margin-top: 20px;
+  .hero {
     gap: 22px;
   }
 
