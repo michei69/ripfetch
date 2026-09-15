@@ -1,13 +1,16 @@
-import type { DownloadsResult, IGameSource, SearchResult } from "./commonData";
-import Fuse from "fuse.js";
+import {
+    type DownloadsResult,
+    genericClosestTo,
+    type SearchResult,
+} from "./commonData";
 import { isAllowedHost, isSafeExternalUrl } from "./NetworkRequest";
 import NetworkRequest from "./NetworkRequest";
 
 const searchResultRegex = /<a href="([^"]+)"[^<]+<h1>([^<]+)/gms;
 const downloadLinkRegex = /a class="btn-download" href="([^"]*)/gms;
 
-export default class Steamunlocked implements IGameSource {
-    displayName = "SteamUnlocked";
+export default class Steamunlocked {
+    static displayName = "SteamUnlocked";
 
     static async search(title: string): Promise<SearchResult[]> {
         const data = await NetworkRequest.get(
@@ -28,19 +31,7 @@ export default class Steamunlocked implements IGameSource {
     static async getClosestTo(query: string): Promise<SearchResult | null> {
         const results = await Steamunlocked.search(query);
         if (results.length === 0) return null;
-        return (
-            new Fuse(results, {
-                keys: ["title"],
-            }).search(query)[0]?.item ?? null
-        );
-    }
-
-    static async getDownloadsOfClosestTo(
-        query: string,
-    ): Promise<DownloadsResult | null> {
-        const game = await Steamunlocked.getClosestTo(query);
-        if (!game) return null;
-        return await Steamunlocked.getDownloads(game.url);
+        return genericClosestTo(results, ["title"], query) || null;
     }
 
     static async getDownloads(url: string): Promise<DownloadsResult> {
@@ -48,6 +39,8 @@ export default class Steamunlocked implements IGameSource {
 
         const data = await NetworkRequest.get(url);
 
+        // Uploadhaven links are relayed through this server, which is what
+        // keeps the download working past the host's own rate limiting.
         const results: DownloadsResult = Object.create(null);
         for (const match of data.matchAll(downloadLinkRegex)) {
             const linkUrl = match[1] ?? "";
@@ -64,17 +57,5 @@ export default class Steamunlocked implements IGameSource {
             }
         }
         return results;
-    }
-
-    search(title: string): Promise<SearchResult[]> {
-        return Steamunlocked.search(title);
-    }
-
-    getClosestTo(query: string): Promise<SearchResult | null> {
-        return Steamunlocked.getClosestTo(query);
-    }
-
-    getDownloads(url: string): Promise<DownloadsResult> {
-        return Steamunlocked.getDownloads(url);
     }
 }

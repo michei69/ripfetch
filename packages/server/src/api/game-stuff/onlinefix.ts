@@ -2,7 +2,6 @@ import { type AxiosResponse } from "axios";
 import {
     type DownloadsResult,
     genericClosestTo,
-    type IGameSource,
     type SearchResult,
 } from "./commonData";
 import { getFirstMatch } from "@/util";
@@ -35,8 +34,8 @@ const getFileName = (filename: string): string => {
     return part ? `Part ${part}` : filename;
 };
 
-export default class Onlinefix implements IGameSource {
-    displayName = "Online-Fix.me";
+export default class Onlinefix {
+    static displayName = "Online-Fix.me";
 
     static async search(title: string): Promise<SearchResult[]> {
         const req = await safePost<ArrayBuffer>(
@@ -77,14 +76,6 @@ export default class Onlinefix implements IGameSource {
         const results = await Onlinefix.search(query);
         if (results.length === 0) return null;
         return genericClosestTo(results, ["title"], query) || null;
-    }
-
-    static async getDownloadsOfClosestTo(
-        query: string,
-    ): Promise<DownloadsResult | null> {
-        const game = await Onlinefix.getClosestTo(query);
-        if (!game) return null;
-        return await Onlinefix.getDownloads(game.url);
     }
 
     private static async processLink(url: string): Promise<DownloadsResult> {
@@ -149,17 +140,5 @@ export default class Onlinefix implements IGameSource {
             }
         }
         return results;
-    }
-
-    search(title: string): Promise<SearchResult[]> {
-        return Onlinefix.search(title);
-    }
-
-    getClosestTo(query: string): Promise<SearchResult | null> {
-        return Onlinefix.getClosestTo(query);
-    }
-
-    getDownloads(url: string): Promise<DownloadsResult> {
-        return Onlinefix.getDownloads(url);
     }
 }

@@ -1,7 +1,6 @@
 import {
     type DownloadsResult,
     genericClosestTo,
-    type IGameSource,
     type SearchResult,
 } from "./commonData";
 import Urlbluemedia, { URLBLUEMEDIA_HOSTS } from "./Urlbluemedia";
@@ -15,8 +14,8 @@ const downloadLinkRegex1 = /<p>((?:(?!<\/p>).)+)/gms;
 const downloadLinkRegexTitle = /<b class[^>]+>([^<]+)/gms;
 const downloadLinkRegex2 = /<a href="([^"]+)"[^>]+>([^<]+)/gms;
 
-export default class Igg implements IGameSource {
-    displayName = "IGG";
+export default class Igg {
+    static displayName = "IGG";
 
     static async search(title: string): Promise<SearchResult[]> {
         const data = await NetworkRequest.get(
@@ -38,14 +37,6 @@ export default class Igg implements IGameSource {
         const results = await Igg.search(query);
         if (results.length === 0) return null;
         return genericClosestTo(results, ["title"], query) || null;
-    }
-
-    static async getDownloadsOfClosestTo(
-        query: string,
-    ): Promise<DownloadsResult | null> {
-        const game = await Igg.getClosestTo(query);
-        if (!game) return null;
-        return await Igg.getDownloads(game.url);
     }
 
     private static async solveLink(url: string): Promise<string> {
@@ -107,17 +98,5 @@ export default class Igg implements IGameSource {
             }
         }
         return results;
-    }
-
-    search(title: string): Promise<SearchResult[]> {
-        return Igg.search(title);
-    }
-
-    getClosestTo(query: string): Promise<SearchResult | null> {
-        return Igg.getClosestTo(query);
-    }
-
-    getDownloads(url: string): Promise<DownloadsResult> {
-        return Igg.getDownloads(url);
     }
 }

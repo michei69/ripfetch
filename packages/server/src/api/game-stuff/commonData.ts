@@ -129,6 +129,11 @@ export type SteamInfo = {
     };
 };
 
+/**
+ * A game source is a class of static methods — the registry in `routes.ts`
+ * holds the class itself, not an instance, so there is nothing to construct and
+ * nothing to delegate to.
+ */
 export type IGameSource = {
     displayName: string;
     search(title: string): Promise<SearchResult[]>;

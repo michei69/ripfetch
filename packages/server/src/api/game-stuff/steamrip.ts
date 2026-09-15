@@ -1,7 +1,6 @@
 import {
     type DownloadsResult,
     genericClosestTo,
-    type IGameSource,
     type SearchResult,
 } from "./commonData";
 import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
@@ -11,8 +10,8 @@ const searchResultRegex =
 const downloadLinkRegex =
     /<strong>([^<]+)<\/strong>[^<]*(?:<\/span>)?<br[^>]*>[^<]*<a href="([^"]+)/gms;
 
-export default class Steamrip implements IGameSource {
-    displayName = "SteamRIP";
+export default class Steamrip {
+    static displayName = "SteamRIP";
 
     static async search(title: string): Promise<SearchResult[]> {
         const req = await safeGet(
@@ -42,14 +41,6 @@ export default class Steamrip implements IGameSource {
         return genericClosestTo(results, ["title"], query) || null;
     }
 
-    static async getDownloadsOfClosestTo(
-        query: string,
-    ): Promise<DownloadsResult | null> {
-        const game = await Steamrip.getClosestTo(query);
-        if (!game) return null;
-        return await Steamrip.getDownloads(game.url);
-    }
-
     static async getDownloads(url: string): Promise<DownloadsResult> {
         const req = await safeGet(url, ["steamrip.com"]);
         const data = typeof req?.data === "string" ? req.data : "";
@@ -64,17 +55,5 @@ export default class Steamrip implements IGameSource {
             }
         }
         return results;
-    }
-
-    search(title: string): Promise<SearchResult[]> {
-        return Steamrip.search(title);
-    }
-
-    getClosestTo(query: string): Promise<SearchResult | null> {
-        return Steamrip.getClosestTo(query);
-    }
-
-    getDownloads(url: string): Promise<DownloadsResult> {
-        return Steamrip.getDownloads(url);
     }
 }

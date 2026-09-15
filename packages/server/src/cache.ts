@@ -2,9 +2,7 @@ import { eq, and, gt, lte, sql } from "drizzle-orm";
 import { db } from "./db";
 import { cache as cacheTable } from "./schema";
 
-const SEARCH_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 const GAME_INFO_CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-const LINKS_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
 const MAX_CACHE_VALUE_LENGTH = 8 * 1024 * 1024;
 const CACHE_CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
 let cleanupStarted = false;
@@ -54,24 +52,6 @@ export async function setCache(
                 expiresAt,
             },
         });
-}
-
-export async function setSearchCache(
-    key: string,
-    value: unknown,
-): Promise<void> {
-    return setCache(key, value, SEARCH_CACHE_TTL);
-}
-
-export async function setLinksCache(
-    key: string,
-    value: unknown,
-): Promise<void> {
-    return setCache(key, value, LINKS_CACHE_TTL);
-}
-
-export async function deleteCache(key: string): Promise<void> {
-    await db.delete(cacheTable).where(eq(cacheTable.key, key));
 }
 
 export async function clearExpiredCache(): Promise<void> {

@@ -69,13 +69,13 @@ Run `bun run check:fix` before committing.
 
 - Elysia routes defined in `routes.ts`, exported as `searchRoute` and `app`
 - All routes prefixed with `/api` via `new Elysia({ prefix: "/api" })`
-- **Cache:** libSQL-backed key-value store via `cache.ts`; TTLs: 12h for search/links, 7 days for game info
-- **Scrapers:** Each game source is a class implementing the implicit `IGameSource` contract:
-    - `displayName: string`
-    - `search(title)` → `Promise<SearchResult[]>`
-    - `getClosestTo(query)` → `Promise<SearchResult | null>`
-    - `getDownloads(url)` → `Promise<DownloadsResult>`
-    - Use static + instance method mix (statics for direct call, instance delegates to static)
+- **Cache:** libSQL-backed key-value store via `cache.ts`; 7 days by default, 5 minutes for an empty link set
+- **Scrapers:** Each game source is a class of static members implementing the `IGameSource` contract, listed by class in `routes.ts` — nothing is constructed:
+    - `static displayName: string`
+    - `static search(title)` → `Promise<SearchResult[]>`
+    - `static getClosestTo(query)` → `Promise<SearchResult | null>`
+    - `static getDownloads(url)` → `Promise<DownloadsResult>`
+    - WordPress sources share `searchPosts`/`postContent` from `wordpress.ts`
 - **SSRF protection:** `NetworkRequest` validates URLs against an allowlist and checks DNS/IP before fetching
 - **Error handling:** Log errors with `console.error` then return null/empty; do not throw
 - `console.log` is allowed in committed code

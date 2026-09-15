@@ -1,15 +1,14 @@
 import {
     type DownloadsResult,
     genericClosestTo,
-    type IGameSource,
     type SearchResult,
 } from "./commonData";
 import Solverr from "../flaresolverr";
 import { decode } from "he";
 import { isAllowedHost, isSafeExternalUrl } from "./NetworkRequest";
 
-export default class Dodi implements IGameSource {
-    displayName = "DodiRepacks";
+export default class Dodi {
+    static displayName = "DodiRepacks";
 
     static async search(title: string): Promise<SearchResult[]> {
         const req = await Solverr.fetch<string>(
@@ -35,14 +34,6 @@ export default class Dodi implements IGameSource {
         return genericClosestTo(results, ["title"], query) || null;
     }
 
-    static async getDownloadsOfClosestTo(
-        query: string,
-    ): Promise<DownloadsResult | null> {
-        const game = await Dodi.getClosestTo(query);
-        if (!game) return null;
-        return await Dodi.getDownloads(game.url);
-    }
-
     static async getDownloads(url: string): Promise<DownloadsResult> {
         if (!isAllowedHost(url, ["dodi-repacks.site"])) return {};
 
@@ -63,25 +54,13 @@ export default class Dodi implements IGameSource {
 
             let i = 1;
             for (const m of match[0].matchAll(/<a href="([^"]+)/gm)) {
-                const url = m[1] ?? "";
-                if (isSafeExternalUrl(url)) {
-                    results[host][`Download ${i++}`] = url;
+                const link = m[1] ?? "";
+                if (isSafeExternalUrl(link)) {
+                    results[host][`Download ${i++}`] = link;
                 }
             }
         }
 
         return results;
-    }
-
-    search(title: string): Promise<SearchResult[]> {
-        return Dodi.search(title);
-    }
-
-    getClosestTo(query: string): Promise<SearchResult | null> {
-        return Dodi.getClosestTo(query);
-    }
-
-    getDownloads(url: string): Promise<DownloadsResult> {
-        return Dodi.getDownloads(url);
     }
 }

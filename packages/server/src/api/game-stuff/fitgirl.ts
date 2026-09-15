@@ -1,33 +1,27 @@
 import {
     type DownloadsResult,
     genericClosestTo,
-    type IGameSource,
     type SearchResult,
 } from "./commonData";
 import { decode } from "he";
-import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
+import { isSafeExternalUrl } from "./NetworkRequest";
+import { hostOf, postBodyUrl, postContent, searchPosts } from "./wordpress";
 
-export default class FitGirl implements IGameSource {
-    displayName = "FitGirl";
+const SITE = "https://fitgirl-repacks.site";
+
+export default class FitGirl {
+    static displayName = "FitGirl";
 
     static async search(title: string): Promise<SearchResult[]> {
-        const req = await safeGet(
-            `https://fitgirl-repacks.site/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=20&search=${encodeURIComponent(title)}`,
-            ["fitgirl-repacks.site"],
-        );
-        const data = Array.isArray(req?.data) ? req.data : [];
+        const posts = await searchPosts(SITE, title);
 
-        const results: SearchResult[] = [];
-        for (const result of data) {
-            results.push({
-                title: result.title.rendered
-                    .replaceAll(/MULTi\d\d-ElAmigos/gm, "")
-                    .replaceAll("-GOG", "")
-                    .trim(),
-                url: `https://fitgirl-repacks.site/wp-json/wp/v2/posts?_fields=content.rendered&slug=${result.slug}`,
-            });
-        }
-        return results;
+        return posts.map((post) => ({
+            title: post.title.rendered
+                .replaceAll(/MULTi\d\d-ElAmigos/gm, "")
+                .replaceAll("-GOG", "")
+                .trim(),
+            url: postBodyUrl(SITE, post.slug),
+        }));
     }
 
     static async getClosestTo(query: string): Promise<SearchResult | null> {
@@ -36,25 +30,14 @@ export default class FitGirl implements IGameSource {
         return genericClosestTo(results, ["title"], query) || null;
     }
 
-    static async getDownloadsOfClosestTo(
-        query: string,
-    ): Promise<DownloadsResult | null> {
-        const game = await FitGirl.getClosestTo(query);
-        if (!game) return null;
-        return await FitGirl.getDownloads(game.url);
-    }
-
     static async getDownloads(url: string): Promise<DownloadsResult> {
-        const req = await safeGet(url, ["fitgirl-repacks.site"]);
-        const data = Array.isArray(req?.data)
-            ? (req.data[0]?.content?.rendered ?? "")
-            : "";
+        const data = await postContent(url, hostOf(SITE));
 
         const results: DownloadsResult = Object.create(null);
         for (const match of data.matchAll(
             /<a href="([^"]+)" target="_blank" rel="noopener nofollow">([^<]+)/gm,
         )) {
-            const url = match[1] ?? "";
+            const link = match[1] ?? "";
             let file = decode(match[2] ?? "").replaceAll(
                 "_–_fitgirl-repacks.site_–_",
                 "",
@@ -62,24 +45,12 @@ export default class FitGirl implements IGameSource {
             if (file.match(/part\d\d/gm)) {
                 file = file.replaceAll(/.*part(\d\d).*/gm, "Part $1");
             }
-            const host = url.split("/")[2];
-            if (!isSafeExternalUrl(url) || !host || !file) continue;
+            const host = link.split("/")[2];
+            if (!isSafeExternalUrl(link) || !host || !file) continue;
             results[host] = results[host] || {};
-            results[host][file] = url;
+            results[host][file] = link;
         }
 
         return results;
-    }
-
-    search(title: string): Promise<SearchResult[]> {
-        return FitGirl.search(title);
-    }
-
-    getClosestTo(query: string): Promise<SearchResult | null> {
-        return FitGirl.getClosestTo(query);
-    }
-
-    getDownloads(url: string): Promise<DownloadsResult> {
-        return FitGirl.getDownloads(url);
     }
 }

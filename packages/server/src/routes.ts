@@ -47,16 +47,16 @@ type DownloadLookup = {
 };
 
 const gameSources: IGameSource[] = [
-    new Game3rb(),
-    new Igg(),
-    new Onlinefix(),
-    new Steamrip(),
-    new Steamunlocked(),
-    new OvaGames(),
-    new GOGto(),
-    new GLoad(),
-    new Dodi(),
-    new FitGirl(),
+    Game3rb,
+    Igg,
+    Onlinefix,
+    Steamrip,
+    Steamunlocked,
+    OvaGames,
+    GOGto,
+    GLoad,
+    Dodi,
+    FitGirl,
 ];
 
 const sourceLimiter = new ConcurrencyLimiter(3, 100);
@@ -77,6 +77,14 @@ const uploadhavenParams = t.Object({
         description: "Uploadhaven download id (hex)",
         maxLength: 64,
         pattern: "^[0-9a-fA-F]{1,64}$",
+    }),
+});
+
+const searchQuery = t.Object({
+    q: t.String({
+        description: "Search query",
+        maxLength: 200,
+        minLength: 2,
     }),
 });
 
@@ -143,6 +151,14 @@ function flattenDownloads(groups: DownloadsResult): Record<string, string> {
     }
 
     return links;
+}
+
+/**
+ * An empty link set is cached only briefly, so a source that happened to be
+ * down is retried soon instead of being written off for a week.
+ */
+function linksCacheTtl(downloads: DownloadMap): number | undefined {
+    return Object.keys(downloads).length > 0 ? undefined : 5 * 60 * 1000;
 }
 
 async function saveCacheSafely(
@@ -397,9 +413,7 @@ async function runGameStream(
     if (signal.aborted) return;
 
     if (!failed) {
-        const ttl =
-            Object.keys(downloads).length > 0 ? undefined : 5 * 60 * 1000;
-        await saveCacheSafely(cacheKey, { downloads }, ttl);
+        await saveCacheSafely(cacheKey, { downloads }, linksCacheTtl(downloads));
     }
     emit({ data: { downloads }, event: "data" });
 }
@@ -447,15 +461,7 @@ export const searchRoute = new Elysia()
             streamResponse(request, (emit, signal) =>
                 runSearchStream(query.q, emit, signal),
             ),
-        {
-            query: t.Object({
-                q: t.String({
-                    description: "Search query",
-                    maxLength: 200,
-                    minLength: 2,
-                }),
-            }),
-        },
+        { query: searchQuery },
     )
     .get(
         "/search",
@@ -476,15 +482,7 @@ export const searchRoute = new Elysia()
                 return { error: "Search is unavailable" };
             }
         },
-        {
-            query: t.Object({
-                q: t.String({
-                    description: "Search query",
-                    maxLength: 200,
-                    minLength: 2,
-                }),
-            }),
-        },
+        { query: searchQuery },
     )
     .get(
         "/game/:id",
@@ -509,12 +507,12 @@ export const searchRoute = new Elysia()
                 const lookup = await getDownloadsForGame(game.steam.name);
                 const downloads = lookup.downloads;
                 const response = { downloads };
-                const ttl =
-                    Object.keys(downloads).length > 0
-                        ? undefined
-                        : 5 * 60 * 1000;
                 if (!lookup.failed) {
-                    await saveCacheSafely(`links:${params.id}`, response, ttl);
+                    await saveCacheSafely(
+                        `links:${params.id}`,
+                        response,
+                        linksCacheTtl(downloads),
+                    );
                 }
                 return response;
             } catch (error) {

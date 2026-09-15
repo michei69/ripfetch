@@ -1,32 +1,26 @@
 import {
     type DownloadsResult,
     genericClosestTo,
-    type IGameSource,
     type SearchResult,
 } from "./commonData";
-import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
+import { isSafeExternalUrl } from "./NetworkRequest";
+import { hostOf, postBodyUrl, postContent, searchPosts } from "./wordpress";
 
-export default class OvaGames implements IGameSource {
-    displayName = "OvaGames";
+const SITE = "https://www.ovagames.com";
+
+export default class OvaGames {
+    static displayName = "OvaGames";
 
     static async search(title: string): Promise<SearchResult[]> {
-        const req = await safeGet(
-            `https://www.ovagames.com/wp-json/wp/v2/posts?_fields=title.rendered,slug&per_page=20&search=${encodeURIComponent(title)}`,
-            ["ovagames.com"],
-        );
-        const data = Array.isArray(req?.data) ? req.data : [];
+        const posts = await searchPosts(SITE, title);
 
-        const results: SearchResult[] = [];
-        for (const result of data) {
-            results.push({
-                title: result.title.rendered
-                    .replaceAll(/MULTi\d\d-ElAmigos/gm, "")
-                    .replaceAll("-GOG", "")
-                    .trim(),
-                url: `https://www.ovagames.com/wp-json/wp/v2/posts?_fields=content.rendered&slug=${result.slug}`,
-            });
-        }
-        return results;
+        return posts.map((post) => ({
+            title: post.title.rendered
+                .replaceAll(/MULTi\d\d-ElAmigos/gm, "")
+                .replaceAll("-GOG", "")
+                .trim(),
+            url: postBodyUrl(SITE, post.slug),
+        }));
     }
 
     static async getClosestTo(query: string): Promise<SearchResult | null> {
@@ -35,44 +29,21 @@ export default class OvaGames implements IGameSource {
         return genericClosestTo(results, ["title"], query) || null;
     }
 
-    static async getDownloadsOfClosestTo(
-        query: string,
-    ): Promise<DownloadsResult | null> {
-        const game = await OvaGames.getClosestTo(query);
-        if (!game) return null;
-        return await OvaGames.getDownloads(game.url);
-    }
-
     static async getDownloads(url: string): Promise<DownloadsResult> {
-        const req = await safeGet(url, ["ovagames.com"]);
-        const data = Array.isArray(req?.data)
-            ? (req.data[0]?.content?.rendered ?? "")
-            : "";
+        const data = await postContent(url, hostOf(SITE));
 
         const results: DownloadsResult = Object.create(null);
         for (const match of data.matchAll(/<a href="([^"]+)">([^<]+)/gm)) {
-            const url = match[1] ?? "";
+            const link = match[1] ?? "";
             const host = (match[2] ?? "")
                 .toLowerCase()
                 .replaceAll("*", "")
                 .trim();
-            if (!isSafeExternalUrl(url) || !host) continue;
+            if (!isSafeExternalUrl(link) || !host) continue;
             results[host] = results[host] || {};
-            results[host].Download = url;
+            results[host].Download = link;
         }
 
         return results;
-    }
-
-    search(title: string): Promise<SearchResult[]> {
-        return OvaGames.search(title);
-    }
-
-    getClosestTo(query: string): Promise<SearchResult | null> {
-        return OvaGames.getClosestTo(query);
-    }
-
-    getDownloads(url: string): Promise<DownloadsResult> {
-        return OvaGames.getDownloads(url);
     }
 }

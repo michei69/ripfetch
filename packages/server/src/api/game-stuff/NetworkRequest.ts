@@ -52,8 +52,8 @@ const BLOCKED_IP_RANGES = [
 ];
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
-const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
-const MAX_REQUEST_BYTES = 2 * 1024 * 1024;
+export const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
+export const MAX_REQUEST_BYTES = 2 * 1024 * 1024;
 
 export function isAllowedHost(
     url: string,
@@ -326,23 +326,39 @@ export async function safeFetch(
     return null;
 }
 
-const byparrInst = process.env.BYPARR_INST;
-async function runCommand(
+export const byparrConfigured = Boolean(process.env.BYPARR_INST);
+
+/**
+ * One request through the Byparr (FlareSolverr-compatible) instance, for pages
+ * sitting behind a Cloudflare interstitial. Returns null when no instance is
+ * configured, when it did not answer, or when the URL it landed on — the
+ * solver follows redirects on its own — is not allowed.
+ */
+export async function solveWithByparr(
     body: Record<string, unknown>,
-): Promise<ByparrResponse | null> {
-    if (!byparrInst) return null;
+    allowedOrigins: readonly string[] | null = ALLOWED_ORIGINS,
+): Promise<string | null> {
+    if (!byparrConfigured) return null;
 
     try {
-        const req = await axios.post(`${byparrInst}/v1`, body, {
+        const req = (await axios.post(`${process.env.BYPARR_INST}/v1`, body, {
             maxContentLength: MAX_RESPONSE_BYTES,
             maxBodyLength: MAX_REQUEST_BYTES,
             timeout: REQUEST_TIMEOUT_MS,
-            validateStatus: () => true,
-        });
-        return req.data;
+        })) as AxiosResponse<ByparrResponse>;
+
+        const solution = req.data?.solution;
+        if (!(await validateUrl(solution?.url, allowedOrigins))) return null;
+        return solution?.response ?? "";
     } catch {
         return null;
     }
+}
+
+function isCloudflareChallenge(data: unknown): boolean {
+    return (
+        typeof data === "string" && data.toLowerCase().includes("just a moment")
+    );
 }
 
 export default {
@@ -357,52 +373,14 @@ export default {
         if (!req) return "";
 
         let data = req.data;
-        if (
-            typeof data === "string" &&
-            data.toLowerCase().includes("just a moment") &&
-            byparrInst != null
-        ) {
+        if (isCloudflareChallenge(data) && byparrConfigured) {
             console.debug("cloudflare - running via byparr");
-            const result = await runCommand({
-                cmd: "request.get",
-                url: url,
-            });
-            data = result?.solution?.response ?? "";
-            if (!(await validateUrl(result?.solution.url, allowedOrigins))) {
-                return "";
-            }
-        }
-        return data as string;
-    },
-
-    // unused
-    async post(
-        url: string,
-        postdata: string,
-        allowedOrigins: readonly string[] = ALLOWED_ORIGINS,
-    ): Promise<string> {
-        const req = await safeAxios<string>(
-            { method: "POST", url, data: postdata },
-            allowedOrigins,
-        );
-        if (!req) return "";
-
-        let data = req.data;
-        if (
-            typeof data === "string" &&
-            data.toLowerCase().includes("just a moment") &&
-            byparrInst != null
-        ) {
-            console.debug("cloudflare - running via byparr");
-            const result = await runCommand({
-                cmd: "request.post",
-                url: url,
-                postData: postdata,
-            });
-            data = result?.solution?.response ?? "";
-            if (!(await validateUrl(result?.solution.url, allowedOrigins))) {
-                return "";
-            }
+            const solved = await solveWithByparr(
+                { cmd: "request.get", url: url },
+                allowedOrigins,
+            );
+            if (solved === null) return "";
+            data = solved;
         }
         return data as string;
     },
