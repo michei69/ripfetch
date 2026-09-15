@@ -36,33 +36,44 @@ function useCover(game: () => TileGame) {
   return { src: () => src() ?? primary(), failed, onError };
 }
 
+/**
+ * The art slot both tiles share: the cover once one loads, the game's initial
+ * when none does. Only the fallback's class differs between the grid tile and
+ * the compact row, so the caller names it.
+ */
+function Cover(props: { game: TileGame; fallbackClass: string }) {
+  const cover = useCover(() => props.game);
+
+  return (
+    <Show
+      when={!cover.failed()}
+      fallback={
+        <div class={props.fallbackClass} aria-hidden="true">
+          {props.game.name.slice(0, 1).toUpperCase()}
+        </div>
+      }
+    >
+      <img
+        src={cover.src()}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onError={cover.onError}
+      />
+    </Show>
+  );
+}
+
 type GamePosterProps = {
   game: TileGame;
   onNavigate?: () => void;
 };
 
 export function GamePoster(props: GamePosterProps) {
-  const cover = useCover(() => props.game);
-
   return (
     <a href={href(props.game.id)} class="poster" onClick={props.onNavigate}>
       <div class="poster-art">
-        <Show
-          when={!cover.failed()}
-          fallback={
-            <div class="poster-art-fallback" aria-hidden="true">
-              {props.game.name.slice(0, 1).toUpperCase()}
-            </div>
-          }
-        >
-          <img
-            src={cover.src()}
-            alt=""
-            loading="lazy"
-            decoding="async"
-            onError={cover.onError}
-          />
-        </Show>
+        <Cover game={props.game} fallbackClass="poster-art-fallback" />
       </div>
       <p class="poster-title" title={props.game.name}>
         {props.game.name}
@@ -86,26 +97,9 @@ export function ResultRows(props: {
 }
 
 export function ResultRow(props: GamePosterProps) {
-  const cover = useCover(() => props.game);
-
   return (
     <a href={href(props.game.id)} class="result-row" onClick={props.onNavigate}>
-      <Show
-        when={!cover.failed()}
-        fallback={
-          <div class="result-fallback" aria-hidden="true">
-            {props.game.name.slice(0, 1).toUpperCase()}
-          </div>
-        }
-      >
-        <img
-          src={cover.src()}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          onError={cover.onError}
-        />
-      </Show>
+      <Cover game={props.game} fallbackClass="result-fallback" />
       <span class="result-name">{props.game.name}</span>
     </a>
   );

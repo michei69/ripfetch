@@ -222,10 +222,6 @@
   color: var(--ink-faint);
 }
 
-.rule {
-  border-top: 1px solid var(--line);
-}
-
 .wordmark {
   font-size: 21px;
   font-weight: 800;
@@ -922,10 +918,6 @@
   animation: dot-pulse 1.1s steps(2, jump-none) infinite;
 }
 
-.state-chip[data-state="failed"] .state-dot {
-  background: var(--line-strong);
-}
-
 @keyframes dot-pulse {
   50% {
     opacity: 0.25;
@@ -1282,12 +1274,6 @@
   font-weight: 600;
 }
 
-.tag[data-tone="solid"] {
-  background: var(--solid);
-  border-color: var(--solid);
-  color: var(--solid-ink);
-}
-
 /* (13) states — loading / error / empty */
 
 .skeleton {
@@ -1580,27 +1566,12 @@
   box-shadow: var(--shadow-pop);
 }
 
-.Toastify__toast-theme--light,
-.Toastify__toast-theme--dark {
-  background: var(--panel);
-  color: var(--ink);
-}
-
-.Toastify__toast-icon svg {
-  fill: currentColor;
-}
-
 .Toastify__toast--success .Toastify__toast-icon {
   color: var(--ink);
 }
 
 .Toastify__toast--error .Toastify__toast-icon {
   color: var(--danger);
-}
-
-.Toastify__close-button {
-  color: var(--ink-faint);
-  opacity: 1;
 }
 
 /* (19) responsive */

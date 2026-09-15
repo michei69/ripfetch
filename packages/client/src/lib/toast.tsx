@@ -59,7 +59,7 @@ function ToastCard(props: { toast: Toast }) {
 
   return (
     <div
-      class={`Toastify__toast Toastify__toast-theme--light Toastify__toast--${props.toast.tone}`}
+      class={`Toastify__toast Toastify__toast--${props.toast.tone}`}
       role="status"
       onMouseEnter={stop}
       onMouseLeave={start}

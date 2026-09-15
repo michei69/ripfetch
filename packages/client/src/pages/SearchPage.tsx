@@ -3,8 +3,10 @@ import type { GameSearch } from "../lib/gameSearch";
 import { useSearch } from "../components/SearchContext";
 import { GamePoster } from "../components/GamePoster";
 import { SourceIndex } from "../components/SourceIndex";
+import { Notice } from "../components/ui/notice";
 import { useRecents } from "../hooks/useRecents";
 import { SOURCE_COUNT } from "../lib/sources";
+import { plural } from "../lib/utils";
 
 const SKELETON_COUNT = 8;
 
@@ -23,7 +25,10 @@ export default function SearchPage() {
           <SearchStatus search={search} />
         </div>
 
-        <Show when={!search.error()} fallback={<Failure clear={clear} />}>
+        <Show
+          when={!search.error()}
+          fallback={<Failure clear={clear} retry={search.retry} />}
+        >
           <Show
             when={search.loading() && search.results().length === 0}
             fallback={
@@ -112,41 +117,43 @@ function Pending() {
   );
 }
 
-function Failure(props: { clear: () => void }) {
-  const { search } = useSearch();
-
+function Failure(props: { clear: () => void; retry: () => void }) {
   return (
-    <div class="notice mt-6" data-tone="danger" role="alert">
-      <p class="notice-title">Couldn&apos;t load results.</p>
-      <p class="notice-body">
-        The search sources did not answer. This is usually temporary.
-      </p>
-      <div class="notice-actions">
-        <button type="button" class="btn" onClick={search.retry}>
-          Search again
-        </button>
-        <button type="button" class="btn" onClick={props.clear}>
-          Clear
-        </button>
-      </div>
-    </div>
+    <Notice
+      class="mt-6"
+      role="alert"
+      tone="danger"
+      title="Couldn't load results."
+      action={
+        <>
+          <button type="button" class="btn" onClick={props.retry}>
+            Search again
+          </button>
+          <button type="button" class="btn" onClick={props.clear}>
+            Clear
+          </button>
+        </>
+      }
+    >
+      The search sources did not answer. This is usually temporary.
+    </Notice>
   );
 }
 
 function Empty(props: { clear: () => void }) {
   return (
-    <div class="notice mt-6" role="status">
-      <p class="notice-title">No games found.</p>
-      <p class="notice-body">
-        Nothing matched that spelling. Titles are matched against the Steam
-        catalogue.
-      </p>
-      <div class="notice-actions">
+    <Notice
+      class="mt-6"
+      title="No games found."
+      action={
         <button type="button" class="btn" onClick={props.clear}>
           Clear search
         </button>
-      </div>
-    </div>
+      }
+    >
+      Nothing matched that spelling. Titles are matched against the Steam
+      catalogue.
+    </Notice>
   );
 }
 
@@ -154,9 +161,7 @@ function SearchStatus(props: { search: GameSearch }) {
   const text = () =>
     props.search.loading()
       ? props.search.status() || "Searching"
-      : `${props.search.results().length} result${
-          props.search.results().length === 1 ? "" : "s"
-        }`;
+      : plural(props.search.results().length, "result");
 
   return (
     <span class="sec-meta" role="status" aria-live="polite">

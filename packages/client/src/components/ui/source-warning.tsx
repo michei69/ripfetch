@@ -1,6 +1,7 @@
 import { createEffect, createSignal, Show, untrack } from "solid-js";
 import type { JSX } from "@solidjs/web";
 import { ExternalLink, TriangleAlert, X, Copy, Check } from "../icons";
+import { copyToClipboard } from "../../lib/clipboard";
 
 type SourceWarningModalProps = {
   open: boolean;
@@ -28,12 +29,8 @@ function CopyClickCode(props: { children: string }) {
   );
 
   const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(props.children);
-      setWork(true);
-    } catch {
-      setError(true);
-    }
+    if (await copyToClipboard(props.children)) setWork(true);
+    else setError(true);
   };
 
   return (

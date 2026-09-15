@@ -3,6 +3,7 @@ import { Search, X } from "./icons";
 import { useSearch } from "./SearchContext";
 import { onDismiss } from "../hooks/useDismiss";
 import { ResultRows } from "./GamePoster";
+import { plural } from "../lib/utils";
 
 /**
  * The rail search field. On the search route it only drives the URL; on any
@@ -77,8 +78,7 @@ export function RailSearch() {
         <div class="rail-pop absolute top-full left-0 z-40 mt-1.5 w-full">
           <div class="flex items-center justify-between gap-2 border-b border-line-soft px-3 py-2">
             <span class="label">
-              {search.results().length} result
-              {search.results().length === 1 ? "" : "s"}
+              {plural(search.results().length, "result")}
             </span>
             <span class="mono text-[10.5px] text-ink-faint">
               {search.loading() ? search.status() || "Searching" : "complete"}

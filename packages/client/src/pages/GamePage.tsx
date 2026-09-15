@@ -21,7 +21,9 @@ import { toast } from "../lib/toast";
 import { SourceWarningModal, WARNINGS } from "../components/ui/source-warning";
 import { GamePageSkeleton } from "../components/skeleton";
 import { Progress } from "../components/ui/progress";
+import { Notice } from "../components/ui/notice";
 import { API_BASE_URL } from "../lib/config";
+import { copyToClipboard } from "../lib/clipboard";
 import { isJsonObject, parseEventData } from "../lib/sse";
 import { isSafeExternalUrl } from "../lib/urls";
 import {
@@ -30,6 +32,7 @@ import {
   steamHeroUrl,
 } from "../lib/steam";
 import { recordRecentGame } from "../lib/recentlyViewed";
+import { plural } from "../lib/utils";
 import {
   domId,
   groupByHost,
@@ -333,11 +336,10 @@ export default function GamePage() {
       return;
     }
 
-    try {
-      await navigator.clipboard.writeText(url);
+    if (await copyToClipboard(url)) {
       setCopied(uid);
       toast.success("Copied");
-    } catch {
+    } else {
       toast.error("Failed to copy link");
     }
   };
@@ -571,9 +573,8 @@ export default function GamePage() {
             <div class="sec-head">
               <h2 id="downloads-heading">Downloads</h2>
               <span class="sec-meta" role="status" aria-live="polite">
-                {linkCount()} link
-                {linkCount() === 1 ? "" : "s"} · {groups().length} source
-                {groups().length === 1 ? "" : "s"}
+                {plural(linkCount(), "link")} ·{" "}
+                {plural(groups().length, "source")}
               </span>
             </div>
 
@@ -630,36 +631,41 @@ export default function GamePage() {
             </Show>
 
             <Show when={error()}>
-              <div class="notice mt-6" data-tone="danger" role="alert">
-                <p class="notice-title">Couldn&apos;t load downloads.</p>
-                <p class="notice-body">{error()}</p>
-                <div class="notice-actions">
+              <Notice
+                class="mt-6"
+                role="alert"
+                tone="danger"
+                title="Couldn't load downloads."
+                action={
                   <button
                     type="button"
                     class="btn"
+                    data-variant="solid"
                     onClick={() => setAttempt((value) => value + 1)}
                   >
                     <RefreshCw size={15} />
                     Retry
                   </button>
-                </div>
-              </div>
+                }
+              >
+                {error()}
+              </Notice>
             </Show>
 
             <Show when={!error() && groups().length === 0 && progress() >= 100}>
-              <div class="notice mt-6" role="status">
-                <p class="notice-title">No downloads found.</p>
-                <p class="notice-body">
-                  Every source was checked and none of them list this game. It
-                  may be too new, or genuinely unavailable.
-                </p>
-                <div class="notice-actions">
+              <Notice
+                class="mt-6"
+                title="No downloads found."
+                action={
                   <a href="/" class="btn">
                     <ArrowLeft size={15} />
                     Search another game
                   </a>
-                </div>
-              </div>
+                }
+              >
+                Every source was checked and none of them list this game. It may
+                be too new, or genuinely unavailable.
+              </Notice>
             </Show>
 
             <Show when={groups().length > 0}>
@@ -794,24 +800,29 @@ function Fallback(props: {
       <Crumbs id={props.id} />
       <Show when={failed()} fallback={<GamePageSkeleton />}>
         {(message) => (
-          <div class="notice" data-tone="danger" role="alert">
-            <p class="notice-title">Couldn&apos;t load this game.</p>
-            <p class="notice-body">{message()}</p>
-            <div class="notice-actions">
-              <button
-                type="button"
-                class="btn"
-                data-variant="solid"
-                onClick={props.retry}
-              >
-                <RefreshCw size={15} />
-                Retry
-              </button>
-              <a href="/" class="btn">
-                Back to index
-              </a>
-            </div>
-          </div>
+          <Notice
+            role="alert"
+            tone="danger"
+            title="Couldn't load this game."
+            action={
+              <>
+                <button
+                  type="button"
+                  class="btn"
+                  data-variant="solid"
+                  onClick={props.retry}
+                >
+                  <RefreshCw size={15} />
+                  Retry
+                </button>
+                <a href="/" class="btn">
+                  Back to index
+                </a>
+              </>
+            }
+          >
+            {message()}
+          </Notice>
         )}
       </Show>
     </section>
@@ -861,10 +872,8 @@ function SourceSection(props: SourceSectionProps) {
             )}
           </Show>
           <span class="dl-group-meta">
-            {props.group.count} link
-            {props.group.count === 1 ? "" : "s"} · {props.group.hosts.length}{" "}
-            host
-            {props.group.hosts.length === 1 ? "" : "s"}
+            {plural(props.group.count, "link")} ·{" "}
+            {plural(props.group.hosts.length, "host")}
           </span>
         </button>
       </h3>
@@ -949,8 +958,7 @@ function HostSection(props: HostSectionProps) {
             </span>
           </Show>
           <span class="host-count">
-            {props.host.releases.length} file
-            {props.host.releases.length === 1 ? "" : "s"}
+            {plural(props.host.releases.length, "file")}
           </span>
         </button>
       </h4>

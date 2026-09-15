@@ -13,19 +13,31 @@ export type SourceInfo = {
     name: string;
     /** Short tag surfaced in the source index when a pre-redirect warning exists. */
     note?: string;
+    /** Tone that tag is drawn in. */
+    tone?: "warn" | "danger" | "slow";
 };
 
 export const SOURCES: readonly SourceInfo[] = [
-    { key: "online-fix.me", name: "Online-Fix.me", note: "zip password" },
+    {
+        key: "online-fix.me",
+        name: "Online-Fix.me",
+        note: "zip password",
+        tone: "warn",
+    },
     { key: "gogto", name: "GOGto" },
     { key: "gload", name: "GLoad" },
     { key: "steamrip", name: "SteamRIP" },
     { key: "fitgirl", name: "FitGirl" },
-    { key: "ovagames", name: "OvaGames", note: "zip password" },
-    { key: "dodirepacks", name: "DodiRepacks", note: "adblocker" },
-    { key: "game3rb", name: "Game3RB", note: "malware risk" },
-    { key: "igg", name: "IGG", note: "malware risk" },
-    { key: "steamunlocked", name: "SteamUnlocked", note: "slow" },
+    { key: "ovagames", name: "OvaGames", note: "zip password", tone: "warn" },
+    {
+        key: "dodirepacks",
+        name: "DodiRepacks",
+        note: "adblocker",
+        tone: "warn",
+    },
+    { key: "game3rb", name: "Game3RB", note: "malware risk", tone: "danger" },
+    { key: "igg", name: "IGG", note: "malware risk", tone: "danger" },
+    { key: "steamunlocked", name: "SteamUnlocked", note: "slow", tone: "slow" },
 ];
 
 export const SOURCE_COUNT = SOURCES.length;

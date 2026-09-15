@@ -1,13 +1,6 @@
 import { For, Show } from "solid-js";
 import { SOURCES, SOURCE_COUNT, SOURCE_RANK } from "../lib/sources";
 
-const NOTE_TONE: Record<string, string> = {
-  "zip password": "warn",
-  slow: "slow",
-  "malware risk": "danger",
-  adblocker: "warn",
-};
-
 /**
  * The catalogue of sources ripfetch scrapes, ruled like an index page. It is
  * the rail's answer to "what is this thing actually searching", and it doubles
@@ -27,7 +20,7 @@ export function SourceIndex() {
               <span class="src-item-name">{source.name}</span>
               <Show when={source.note}>
                 {(note) => (
-                  <span class="src-item-note" data-tone={NOTE_TONE[note()]}>
+                  <span class="src-item-note" data-tone={source.tone}>
                     {note()}
                   </span>
                 )}
