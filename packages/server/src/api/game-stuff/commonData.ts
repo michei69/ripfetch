@@ -1,5 +1,9 @@
 import Fuse from "fuse.js";
 
+// Lives here so NetworkRequest and Urlbluemedia can both use it without
+// importing each other.
+export const URLBLUEMEDIA_HOSTS = ["urlbluemedia.shop", "bluemediafiles.com"];
+
 export type SearchResult = {
     title: string;
     url: string;

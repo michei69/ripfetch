@@ -4,11 +4,8 @@ import {
     type IGameSource,
     type SearchResult,
 } from "./commonData";
-import Urlbluemedia from "./Urlbluemedia";
-import {
-    isAllowedHost,
-    isSafeExternalUrl,
-} from "./NetworkRequest";
+import Urlbluemedia, { URLBLUEMEDIA_HOSTS } from "./Urlbluemedia";
+import { isAllowedHost, isSafeExternalUrl } from "./NetworkRequest";
 import NetworkRequest from "./NetworkRequest";
 import { getFirstMatch } from "@/util";
 
@@ -56,13 +53,16 @@ export default class Igg implements IGameSource {
             const data = await NetworkRequest.get(url, ["pcgamestorrents.com"]);
             let encLink = "";
             for (const link of data.matchAll(/<a href="([^"]+)"/gms)) {
-                if (isSafeExternalUrl(link[1]) && link[1].includes("url-generator.php")) {
+                if (
+                    isSafeExternalUrl(link[1]) &&
+                    link[1].includes("url-generator.php")
+                ) {
                     encLink = link[1];
                 }
             }
             return await Urlbluemedia.getRealUrl(encLink);
         } else if (
-            isAllowedHost(url, ["urlbluemedia.shop"]) &&
+            isAllowedHost(url, URLBLUEMEDIA_HOSTS) &&
             url.includes("url-generator.php")
         ) {
             return await Urlbluemedia.getRealUrl(url);

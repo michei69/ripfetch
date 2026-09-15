@@ -1,9 +1,7 @@
-import axios, {
-    type AxiosRequestConfig,
-    type AxiosResponse,
-} from "axios";
+import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { lookup } from "node:dns/promises";
 import ipRangeCheck from "ip-range-check";
+import { URLBLUEMEDIA_HOSTS } from "./commonData";
 
 export const REQUEST_TIMEOUT_MS = 60_000;
 export const MAX_REDIRECTS = 5;
@@ -21,7 +19,7 @@ export const ALLOWED_ORIGINS = [
     "ovagames.com",
     "online-fix.me",
     "pcgamestorrents.com",
-    "urlbluemedia.shop",
+    ...URLBLUEMEDIA_HOSTS,
     "megaup.net",
     "buzzheavier.com",
     "uploadhaven.com",
@@ -159,12 +157,14 @@ export async function safeAxios<T = unknown>(
     let stripSensitiveHeaders = false;
     const maxRedirects = config.maxRedirects ?? MAX_REDIRECTS;
 
-    for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
+    for (
+        let redirectCount = 0;
+        redirectCount <= maxRedirects;
+        redirectCount++
+    ) {
         if (!(await validateUrl(currentUrl, allowedOrigins))) return null;
 
-        const headers = config.headers
-            ? { ...config.headers }
-            : undefined;
+        const headers = config.headers ? { ...config.headers } : undefined;
         if (stripSensitiveHeaders && headers) {
             for (const name of Object.keys(headers)) {
                 if (
@@ -194,8 +194,7 @@ export async function safeAxios<T = unknown>(
                 method,
                 url: currentUrl,
                 maxRedirects: 0,
-                maxContentLength:
-                    config.maxContentLength ?? MAX_RESPONSE_BYTES,
+                maxContentLength: config.maxContentLength ?? MAX_RESPONSE_BYTES,
                 maxBodyLength: config.maxBodyLength ?? MAX_REQUEST_BYTES,
                 timeout: config.timeout ?? REQUEST_TIMEOUT_MS,
                 validateStatus: () => true,
@@ -241,10 +240,7 @@ export function safeGet<T = unknown>(
     allowedOrigins: readonly string[] | null = ALLOWED_ORIGINS,
     config: Omit<AxiosRequestConfig, "method" | "url"> = {},
 ): Promise<AxiosResponse<T> | null> {
-    return safeAxios<T>(
-        { ...config, method: "GET", url },
-        allowedOrigins,
-    );
+    return safeAxios<T>({ ...config, method: "GET", url }, allowedOrigins);
 }
 
 export function safePost<T = unknown>(
@@ -274,7 +270,8 @@ export async function safeFetch(
     ) {
         const currentAllowedOrigins =
             redirectCount === 0 ? allowedOrigins : redirectAllowedOrigins;
-        if (!(await validateUrl(currentUrl, currentAllowedOrigins))) return null;
+        if (!(await validateUrl(currentUrl, currentAllowedOrigins)))
+            return null;
 
         const headers = new Headers(init.headers);
         if (redirectCount > 0) {
@@ -371,12 +368,7 @@ export default {
                 url: url,
             });
             data = result?.solution?.response ?? "";
-            if (
-                !(await validateUrl(
-                    result?.solution.url,
-                    allowedOrigins,
-                ))
-            ) {
+            if (!(await validateUrl(result?.solution.url, allowedOrigins))) {
                 return "";
             }
         }
@@ -408,12 +400,7 @@ export default {
                 postData: postdata,
             });
             data = result?.solution?.response ?? "";
-            if (
-                !(await validateUrl(
-                    result?.solution.url,
-                    allowedOrigins,
-                ))
-            ) {
+            if (!(await validateUrl(result?.solution.url, allowedOrigins))) {
                 return "";
             }
         }
