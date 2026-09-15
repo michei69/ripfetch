@@ -1,9 +1,6 @@
 import type { DownloadsResult, IGameSource, SearchResult } from "./commonData";
 import Fuse from "fuse.js";
-import {
-    isAllowedHost,
-    isSafeExternalUrl,
-} from "./NetworkRequest";
+import { isAllowedHost, isSafeExternalUrl } from "./NetworkRequest";
 import NetworkRequest from "./NetworkRequest";
 
 const searchResultRegex = /<a href="([^"]+)"[^<]+<h1>([^<]+)/gms;

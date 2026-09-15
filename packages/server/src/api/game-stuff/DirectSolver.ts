@@ -1,9 +1,5 @@
 import Solverr from "../flaresolverr";
-import {
-    isAllowedHost,
-    isSafeExternalUrl,
-    safeGet,
-} from "./NetworkRequest";
+import { isAllowedHost, isSafeExternalUrl, safeGet } from "./NetworkRequest";
 import NetworkRequest from "./NetworkRequest";
 import { getFirstMatch } from "@/util";
 

@@ -4,10 +4,7 @@ import {
     type IGameSource,
     type SearchResult,
 } from "./commonData";
-import {
-    isSafeExternalUrl,
-    safeGet,
-} from "./NetworkRequest";
+import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
 
 export default class Game3rb implements IGameSource {
     displayName = "Game3RB";
@@ -52,17 +49,16 @@ export default class Game3rb implements IGameSource {
     static async getDownloads(url: string): Promise<DownloadsResult> {
         const req = await safeGet(url, ["game3rb.com"]);
         const data = Array.isArray(req?.data)
-            ? req.data[0]?.content?.rendered ?? ""
+            ? (req.data[0]?.content?.rendered ?? "")
             : "";
 
         const temp: Record<string, string[]> = Object.create(null);
         for (const match of data.matchAll(
             /(thenewscasts\.com\/view\/[^"]*)/gm,
         )) {
-            const req2 = await safeGet(
-                `https://${match[1]}`,
-                ["thenewscasts.com"],
-            );
+            const req2 = await safeGet(`https://${match[1]}`, [
+                "thenewscasts.com",
+            ]);
             const data2 = typeof req2?.data === "string" ? req2.data : "";
             for (const match2 of data2.matchAll(/href="(http[^"]*)/gm)) {
                 const link = match2[1] ?? "";
@@ -78,7 +74,10 @@ export default class Game3rb implements IGameSource {
 
         const results: DownloadsResult = Object.create(null);
         for (const [host, links] of Object.entries(temp)) {
-            if (host === "thenewscasts.com" || host.endsWith(".thenewscasts.com")) {
+            if (
+                host === "thenewscasts.com" ||
+                host.endsWith(".thenewscasts.com")
+            ) {
                 continue;
             }
             results[host] = results[host] || {};

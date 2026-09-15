@@ -39,7 +39,10 @@ function serveStatic(pathname: string): Response | undefined | ElysiaFile {
 
     let resolvedFilePath = filePath;
     try {
-        if (!existsSync(resolvedFilePath) || statSync(resolvedFilePath).isDirectory()) {
+        if (
+            !existsSync(resolvedFilePath) ||
+            statSync(resolvedFilePath).isDirectory()
+        ) {
             resolvedFilePath = join(filePath, "index.html");
         }
     } catch {

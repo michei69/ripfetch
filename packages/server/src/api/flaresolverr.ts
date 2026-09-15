@@ -21,14 +21,18 @@ export default {
         }
 
         try {
-            const res = (await axios.post(`${byparrInst}/v1`, {
-                cmd: "request.get",
-                url: url,
-            }, {
-                maxContentLength: 8 * 1024 * 1024,
-                maxBodyLength: 2 * 1024 * 1024,
-                timeout: REQUEST_TIMEOUT_MS,
-            })) as AxiosResponse<ByparrResponse>;
+            const res = (await axios.post(
+                `${byparrInst}/v1`,
+                {
+                    cmd: "request.get",
+                    url: url,
+                },
+                {
+                    maxContentLength: 8 * 1024 * 1024,
+                    maxBodyLength: 2 * 1024 * 1024,
+                    timeout: REQUEST_TIMEOUT_MS,
+                },
+            )) as AxiosResponse<ByparrResponse>;
             if (!(await validateUrl(res?.data?.solution.url ?? ""))) return;
             return res.data?.solution?.response as T;
         } catch {}

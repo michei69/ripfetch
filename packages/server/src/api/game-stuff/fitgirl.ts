@@ -47,7 +47,7 @@ export default class FitGirl implements IGameSource {
     static async getDownloads(url: string): Promise<DownloadsResult> {
         const req = await safeGet(url, ["fitgirl-repacks.site"]);
         const data = Array.isArray(req?.data)
-            ? req.data[0]?.content?.rendered ?? ""
+            ? (req.data[0]?.content?.rendered ?? "")
             : "";
 
         const results: DownloadsResult = Object.create(null);

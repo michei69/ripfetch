@@ -1,5 +1,10 @@
 import { type AxiosResponse } from "axios";
-import { type DownloadsResult, genericClosestTo, type IGameSource, type SearchResult } from "./commonData";
+import {
+    type DownloadsResult,
+    genericClosestTo,
+    type IGameSource,
+    type SearchResult,
+} from "./commonData";
 import { getFirstMatch } from "@/util";
 import {
     isAllowedHost,
@@ -8,27 +13,27 @@ import {
     safePost,
 } from "./NetworkRequest";
 
-const searchResultRegex = /href="([^"]*)"><span[^>]*>([^<]*)/gm
-const downloadLinkRegex = /href="([^"]*)" class="btn btn-success btn-small">([^<]*)/gm
-const filenamePartRegex = /part([^.]+)/gm
+const searchResultRegex = /href="([^"]*)"><span[^>]*>([^<]*)/gm;
+const downloadLinkRegex =
+    /href="([^"]*)" class="btn btn-success btn-small">([^<]*)/gm;
+const filenamePartRegex = /part([^.]+)/gm;
 
-const textDecoder = new TextDecoder("windows-1252")
+const textDecoder = new TextDecoder("windows-1252");
 const getAxiosData = (response: AxiosResponse): string => {
-    return textDecoder.decode(response.data)
-}
+    return textDecoder.decode(response.data);
+};
 
 const getLoginCookie = (): string => {
     const userId = process.env.ONLINEFIX_DLE_USER_ID;
     const password = process.env.ONLINEFIX_DLE_PASSWORD;
     if (!userId || !password) return "";
     return `dle_user_id=${userId}; dle_password=${password};`;
-}
+};
 
 const getFileName = (filename: string): string => {
-    const part = getFirstMatch(filename, filenamePartRegex)?.[1]
-    return part ? `Part ${part}` : filename
-}
-
+    const part = getFirstMatch(filename, filenamePartRegex)?.[1];
+    return part ? `Part ${part}` : filename;
+};
 
 export default class Onlinefix implements IGameSource {
     displayName = "Online-Fix.me";
@@ -41,16 +46,16 @@ export default class Onlinefix implements IGameSource {
             {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
-                    "Referer": "https://online-fix.me/page/2/",
+                    Referer: "https://online-fix.me/page/2/",
                     "X-Requested-With": "XMLHttpRequest",
                 },
                 responseType: "arraybuffer",
             },
         );
         if (!req) return [];
-        const data = getAxiosData(req)
+        const data = getAxiosData(req);
 
-        const results: SearchResult[] = []
+        const results: SearchResult[] = [];
         for (const match of data.matchAll(searchResultRegex)) {
             const rawTitle = match[2] ?? "";
             const rawUrl = match[1] ?? "";
@@ -63,21 +68,23 @@ export default class Onlinefix implements IGameSource {
             results.push({
                 title: rawTitle.replace(/\s*по сети\s*$/i, "").trim(),
                 url: resultUrl,
-            })
+            });
         }
-        return results
+        return results;
     }
 
     static async getClosestTo(query: string): Promise<SearchResult | null> {
-        const results = await Onlinefix.search(query)
-        if (results.length === 0) return null
-        return genericClosestTo(results, ["title"], query) || null
+        const results = await Onlinefix.search(query);
+        if (results.length === 0) return null;
+        return genericClosestTo(results, ["title"], query) || null;
     }
 
-    static async getDownloadsOfClosestTo(query: string): Promise<DownloadsResult | null> {
-        const game = await Onlinefix.getClosestTo(query)
-        if (!game) return null
-        return await Onlinefix.getDownloads(game.url)
+    static async getDownloadsOfClosestTo(
+        query: string,
+    ): Promise<DownloadsResult | null> {
+        const game = await Onlinefix.getClosestTo(query);
+        if (!game) return null;
+        return await Onlinefix.getDownloads(game.url);
     }
 
     private static async processLink(url: string): Promise<DownloadsResult> {
@@ -86,11 +93,11 @@ export default class Onlinefix implements IGameSource {
 
         const res = await safeGet<string>(url, ["hosters.online-fix.me"], {
             headers: {
-                "Referer": "https://online-fix.me/",
+                Referer: "https://online-fix.me/",
             },
         });
         const html: string = typeof res?.data === "string" ? res.data : "";
-            
+
         for (const match of html.matchAll(/data-links='([^']*)/gm)) {
             let data: unknown;
             try {
@@ -103,7 +110,8 @@ export default class Onlinefix implements IGameSource {
             for (const file of data) {
                 if (!file || typeof file !== "object") continue;
                 const directLink =
-                    "direct_link" in file && typeof file.direct_link === "string"
+                    "direct_link" in file &&
+                    typeof file.direct_link === "string"
                         ? file.direct_link
                         : "";
                 const fileName =
@@ -117,7 +125,7 @@ export default class Onlinefix implements IGameSource {
                 links[hostLower][getFileName(fileName)] = directLink;
             }
         }
-        return links
+        return links;
     }
 
     static async getDownloads(url: string): Promise<DownloadsResult> {
@@ -129,29 +137,29 @@ export default class Onlinefix implements IGameSource {
         });
         const data = typeof req?.data === "string" ? req.data : "";
 
-        const results: DownloadsResult = Object.create(null)
+        const results: DownloadsResult = Object.create(null);
         for (const match of data.matchAll(downloadLinkRegex)) {
-            if ((match[1] ?? "").includes("donation")) continue
-            const processed = await Onlinefix.processLink(match[1] ?? "")
+            if ((match[1] ?? "").includes("donation")) continue;
+            const processed = await Onlinefix.processLink(match[1] ?? "");
             for (const [host, links] of Object.entries(processed)) {
-                if (!results[host]) results[host] = {}
+                if (!results[host]) results[host] = {};
                 for (const [name, link] of Object.entries(links)) {
-                    results[host][name] = link
+                    results[host][name] = link;
                 }
             }
         }
-        return results
+        return results;
     }
 
     search(title: string): Promise<SearchResult[]> {
-        return Onlinefix.search(title)
+        return Onlinefix.search(title);
     }
 
     getClosestTo(query: string): Promise<SearchResult | null> {
-        return Onlinefix.getClosestTo(query)
+        return Onlinefix.getClosestTo(query);
     }
 
     getDownloads(url: string): Promise<DownloadsResult> {
-        return Onlinefix.getDownloads(url)
+        return Onlinefix.getDownloads(url);
     }
 }

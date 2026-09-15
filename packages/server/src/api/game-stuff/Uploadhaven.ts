@@ -1,8 +1,4 @@
-import {
-    isAllowedHost,
-    safeGet,
-    safePost,
-} from "./NetworkRequest";
+import { isAllowedHost, safeGet, safePost } from "./NetworkRequest";
 
 const inputTypeValueRegex = /name="([^"]*)" type="hidden" value="([^"]*)/gm;
 

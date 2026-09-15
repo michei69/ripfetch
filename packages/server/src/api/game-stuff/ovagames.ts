@@ -46,7 +46,7 @@ export default class OvaGames implements IGameSource {
     static async getDownloads(url: string): Promise<DownloadsResult> {
         const req = await safeGet(url, ["ovagames.com"]);
         const data = Array.isArray(req?.data)
-            ? req.data[0]?.content?.rendered ?? ""
+            ? (req.data[0]?.content?.rendered ?? "")
             : "";
 
         const results: DownloadsResult = Object.create(null);

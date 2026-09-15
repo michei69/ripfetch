@@ -27,9 +27,7 @@ function getLimit(pathname: string): Limit | null {
         return { key: "game-info", max: 60 };
     }
 
-    if (
-        /^\/api\/game\/[^/]+\/(?:links|links\/sse|stream)$/.test(pathname)
-    ) {
+    if (/^\/api\/game\/[^/]+\/(?:links|links\/sse|stream)$/.test(pathname)) {
         return { key: "source-search", max: 6 };
     }
 

@@ -32,10 +32,21 @@ axios.interceptors.request.use((config) => {
     }
     return config;
 });
-axios.interceptors.response.use((response) => {
-    requestProgress.getStore()?.report("Response received; processing page");
-    return response;
-}, (error) => {
-    requestProgress.getStore()?.report(axios.isCancel(error) ? "Request cancelled" : "Network request failed");
-    return Promise.reject(error);
-});
+axios.interceptors.response.use(
+    (response) => {
+        requestProgress
+            .getStore()
+            ?.report("Response received; processing page");
+        return response;
+    },
+    (error) => {
+        requestProgress
+            .getStore()
+            ?.report(
+                axios.isCancel(error)
+                    ? "Request cancelled"
+                    : "Network request failed",
+            );
+        return Promise.reject(error);
+    },
+);

@@ -6,10 +6,7 @@ import {
 } from "./commonData";
 import Chrome from "../Chrome";
 import { parse } from "node-html-parser";
-import {
-    isSafeExternalUrl,
-    safeGet,
-} from "./NetworkRequest";
+import { isSafeExternalUrl, safeGet } from "./NetworkRequest";
 
 type GOGSearchResponse = {
     pages: number;

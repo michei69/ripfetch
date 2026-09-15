@@ -4,9 +4,7 @@ import { getCache, setCache } from "../../cache";
 import { getFirstMatch } from "@/util";
 import { safeGet, safePost } from "./NetworkRequest";
 
-const apiKeyRegex = new RegExp(
-    /js-search-tips" data-[^ ]* data-k="([^"]*)/gm,
-);
+const apiKeyRegex = new RegExp(/js-search-tips" data-[^ ]* data-k="([^"]*)/gm);
 const ALGOLIA_KEY_CACHE_KEY = "steam_algolia_key";
 const ALGOLIA_KEY_CACHE_TTL = 24 * 60 * 60 * 1000;
 
@@ -126,10 +124,9 @@ export default {
 
         const request = (async () => {
             try {
-                const response = await safeGet<Record<
-                    string,
-                    { success?: boolean; data?: SteamInfo }
-                >>(
+                const response = await safeGet<
+                    Record<string, { success?: boolean; data?: SteamInfo }>
+                >(
                     `https://store.steampowered.com/api/appdetails?appids=${encodeURIComponent(key)}`,
                     ["store.steampowered.com"],
                 );
