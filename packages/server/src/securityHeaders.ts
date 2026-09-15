@@ -5,6 +5,7 @@ export const SECURITY_HEADERS = {
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
         "img-src 'self' data: https://shared.fastly.steamstatic.com " +
+        "https://shared.akamai.steamstatic.com " +
         "https://cdn.akamai.steamstatic.com " +
         "https://steamcdn-a.akamaihd.net; connect-src 'self'",
     "Permissions-Policy": "camera=(), geolocation=(), microphone=()",
