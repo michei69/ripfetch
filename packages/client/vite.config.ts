@@ -1,12 +1,12 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import solid from "@solidjs/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
 
 const apiPort = process.env.PORT || "3111";
 
 export default defineConfig({
-    plugins: [tailwindcss(), react()],
+    plugins: [tailwindcss(), solid()],
     resolve: {
         alias: {
             "@": fileURLToPath(new URL("./src", import.meta.url)),

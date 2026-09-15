@@ -1,32 +1,32 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { createEffect, type Accessor } from "solid-js";
 
 /**
- * Calls `onDismiss` when a pointer lands outside `ref`.
+ * Calls `onDismiss` when a pointer lands outside `element`.
  *
- * The handler is held in a ref so callers can pass an inline closure without
- * re-subscribing on every render.
+ * Written as a ref consumer so it rides Solid's assignment timing: the effect
+ * runs on mount, is skipped while `enabled` is false, and its cleanup removes
+ * the listener. The callback is read untracked inside the handler, so passing
+ * an inline closure never re-subscribes.
  */
-export function useDismiss<T extends HTMLElement>(
-    ref: RefObject<T | null>,
+export function onDismiss(
+    element: HTMLElement | undefined,
     onDismiss: () => void,
-    enabled = true,
+    enabled: Accessor<boolean> = () => true,
 ) {
-    const handlerRef = useRef(onDismiss);
+    if (!element) return;
 
-    useEffect(() => {
-        handlerRef.current = onDismiss;
-    }, [onDismiss]);
+    createEffect(
+        () => enabled(),
+        (active) => {
+            if (!active) return;
 
-    useEffect(() => {
-        if (!enabled) return;
+            const listener = (event: PointerEvent) => {
+                if (element.contains(event.target as Node)) return;
+                onDismiss();
+            };
 
-        const onPointerDown = (event: PointerEvent) => {
-            const element = ref.current;
-            if (!element || element.contains(event.target as Node)) return;
-            handlerRef.current();
-        };
-
-        document.addEventListener("pointerdown", onPointerDown);
-        return () => document.removeEventListener("pointerdown", onPointerDown);
-    }, [ref, enabled]);
+            document.addEventListener("pointerdown", listener);
+            return () => document.removeEventListener("pointerdown", listener);
+        },
+    );
 }

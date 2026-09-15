@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode } from "react";
-import { ExternalLink, TriangleAlert, X, Copy, Check } from "lucide-react";
+import { createEffect, createSignal, Show, untrack } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { ExternalLink, TriangleAlert, X, Copy, Check } from "../icons";
 
 type SourceWarningModalProps = {
   open: boolean;
@@ -11,49 +11,59 @@ type SourceWarningModalProps = {
   onDismissPermanently: () => void;
 };
 
-const CopyClickCode = ({ children }: { children: string }) => {
-  const [work, setWork] = useState(false);
-  const [error, setError] = useState(false);
+function CopyClickCode(props: { children: string }) {
+  const [work, setWork] = createSignal(false);
+  const [error, setError] = createSignal(false);
 
-  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (work || error) {
-      if (timeout.current) clearTimeout(timeout.current);
-      timeout.current = setTimeout(() => {
+  createEffect(
+    () => work() || error(),
+    (settled) => {
+      if (!settled) return;
+      const timer = setTimeout(() => {
         setWork(false);
         setError(false);
       }, 2000);
-    }
-    return () => {
-      if (timeout.current) clearTimeout(timeout.current);
-    };
-  }, [work, error]);
+      return () => clearTimeout(timer);
+    },
+  );
 
-  const copyLink = useCallback(async () => {
+  const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(children);
+      await navigator.clipboard.writeText(props.children);
       setWork(true);
     } catch {
       setError(true);
     }
-  }, [children]);
+  };
 
   return (
     <button
       type="button"
-      aria-label={`Copy password ${children}`}
-      className={`mono inline-flex cursor-pointer items-center gap-1.5 border-b border-dashed border-line-strong align-baseline text-[12.5px] text-ink ${work ? "text-ink-mute" : ""} ${error ? "text-danger" : ""}`}
+      aria-label={`Copy password ${props.children}`}
+      class={{
+        "mono inline-flex cursor-pointer items-center gap-1.5 border-b border-dashed border-line-strong align-baseline text-[12.5px]": true,
+        "text-ink": !work() && !error(),
+        "text-ink-mute": work(),
+        "text-danger": error(),
+      }}
       onClick={copyLink}
     >
-      {children}
-      {!work && !error && <Copy className="size-3" aria-hidden="true" />}
-      {work && <Check className="size-3" aria-hidden="true" />}
-      {error && <X className="size-3" aria-hidden="true" />}
+      {props.children}
+      <Show
+        when={work()}
+        fallback={
+          <Show when={error()} fallback={<Copy size={12} />}>
+            <X size={12} />
+          </Show>
+        }
+      >
+        <Check size={12} />
+      </Show>
     </button>
   );
-};
+}
 
-const WARNINGS: Record<string, { title: string; body: ReactNode }> = {
+const WARNINGS: Record<string, { title: string; body: JSX.Element }> = {
   "online-fix.me": {
     title: "Online-Fix.me zips are password protected",
     body: (
@@ -143,100 +153,124 @@ const WARNINGS: Record<string, { title: string; body: ReactNode }> = {
   },
 };
 
-export function SourceWarningModal({
-  open,
-  source,
-  domain,
-  onConfirm,
-  onDismiss,
-  onDismissPermanently,
-}: SourceWarningModalProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  const [activeSource, setActiveSource] = useState(source);
+export function SourceWarningModal(props: SourceWarningModalProps) {
+  let dialog: HTMLDialogElement | undefined;
+  let returnFocus: HTMLElement | null = null;
+  const [activeSource, setActiveSource] = createSignal(props.source);
 
-  // Keep the last real source around while the dialog closes so the
-  // element stays mounted and focus restoration can run.
-  useEffect(() => {
-    if (source) setActiveSource(source);
-  }, [source]);
+  // Keep the last real source around while the dialog closes so the element
+  // stays mounted and focus restoration can run.
+  createEffect(
+    () => props.source,
+    (source) => {
+      if (source) setActiveSource(source);
+    },
+  );
 
-  const warning = WARNINGS[activeSource];
+  const warning = () => WARNINGS[activeSource()];
 
-  useEffect(() => {
-    const element = dialogRef.current;
-    if (!element) return;
+  // A native dialog owns its own open state: `showModal`/`close` are the only
+  // way to get the top layer, the backdrop and the focus trap, so the effect
+  // mirrors the prop onto the element instead of unmounting it.
+  //
+  // `connected` is a signal the ref raises once the element exists: the ref
+  // callback runs while the element is being built, before this component's
+  // effects, so without it the first `open` would be dropped. The element is
+  // rendered unconditionally for the same reason — the closed state is the
+  // attribute, not the absence of the node — which also leaves it in place
+  // for focus restoration while it closes.
+  const [connected, setConnected] = createSignal(false);
+  createEffect(
+    () => [props.open, connected()] as const,
+    ([open]) => {
+      if (!dialog || !connected()) return;
 
-    if (open && !element.open) {
-      returnFocusRef.current = document.activeElement as HTMLElement | null;
-      element.showModal();
-    } else if (!open && element.open) {
-      element.close();
-      returnFocusRef.current?.focus();
-      returnFocusRef.current = null;
-    }
-  }, [open, activeSource]);
+      if (open && !dialog.open) {
+        returnFocus = document.activeElement as HTMLElement | null;
+        dialog.showModal();
+      } else if (!open && dialog.open) {
+        dialog.close();
+        returnFocus?.focus();
+        returnFocus = null;
+      }
+    },
+  );
 
-  if (!warning) return null;
+  const titleId = "source-warning-title";
+  const bodyId = "source-warning-body";
 
   return (
     <dialog
-      ref={dialogRef}
-      aria-labelledby="source-warning-title"
-      aria-describedby="source-warning-body"
-      className="warning-dialog"
-      onCancel={onDismiss}
+      ref={(element) => {
+        dialog = element;
+        setConnected(true);
+      }}
+      aria-labelledby={titleId}
+      aria-describedby={bodyId}
+      class="warning-dialog"
+      onCancel={() => untrack(props.onDismiss)}
     >
-      <div className="dialog-head">
-        <span className="mt-0.5 flex-none text-warn">
-          <TriangleAlert size={18} aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 id="source-warning-title" className="dialog-title">
-            {warning.title}
-          </h3>
-          <p className="dialog-sub">
-            redirecting to <span className="text-ink">{domain}</span>
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          aria-label="Close warning"
-          className="btn"
-          data-size="icon"
-          data-variant="quiet"
-        >
-          <X size={16} aria-hidden="true" />
-        </button>
-      </div>
+      <Show when={warning()}>
+        {(content) => (
+          <>
+            <div class="dialog-head">
+              <span class="mt-0.5 flex-none text-warn">
+                <TriangleAlert size={18} />
+              </span>
+              <div class="min-w-0 flex-1">
+                <h3 id={titleId} class="dialog-title">
+                  {content().title}
+                </h3>
+                <p class="dialog-sub">
+                  redirecting to <span class="text-ink">{props.domain}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={props.onDismiss}
+                aria-label="Close warning"
+                class="btn"
+                data-size="icon"
+                data-variant="quiet"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-      <p id="source-warning-body" className="dialog-body">
-        {warning.body}
-      </p>
+            <p id={bodyId} class="dialog-body">
+              {content().body}
+            </p>
 
-      <div className="dialog-actions">
-        <button
-          type="button"
-          className="btn"
-          data-variant="solid"
-          onClick={onConfirm}
-        >
-          <ExternalLink size={15} aria-hidden="true" />
-          Continue anyway
-        </button>
-        <button type="button" className="btn" data-grow="0" onClick={onDismiss}>
-          Go back
-        </button>
-      </div>
+            <div class="dialog-actions">
+              <button
+                type="button"
+                class="btn"
+                data-variant="solid"
+                onClick={props.onConfirm}
+              >
+                <ExternalLink size={15} />
+                Continue anyway
+              </button>
+              <button
+                type="button"
+                class="btn"
+                data-grow="0"
+                onClick={props.onDismiss}
+              >
+                Go back
+              </button>
+            </div>
 
-      <button
-        type="button"
-        onClick={onDismissPermanently}
-        className="dialog-dismiss"
-      >
-        Don&apos;t show this warning for {activeSource} again
-      </button>
+            <button
+              type="button"
+              onClick={props.onDismissPermanently}
+              class="dialog-dismiss"
+            >
+              Don&apos;t show this warning for {activeSource()} again
+            </button>
+          </>
+        )}
+      </Show>
     </dialog>
   );
 }

@@ -1,43 +1,27 @@
-import { BrowserRouter, Routes, Route } from "react-router";
-import { ToastContainer } from "react-toastify";
-import { ThemeProvider } from "next-themes";
+import { Router } from "./router";
 import { Layout } from "./components/Layout";
 import { SearchProvider } from "./components/SearchContext";
-import SearchPage from "./pages/SearchPage";
-import GamePage from "./pages/GamePage";
+import { ThemeProvider } from "./lib/theme";
+import { Toaster } from "./lib/toast";
 
-function App() {
+/**
+ * Root render. The router's render prop is the app shell: it is created once
+ * and receives the matched route as `props.children`, so the rail, the theme
+ * and the single search stream all survive navigation.
+ */
+export default function App() {
   return (
-    <ThemeProvider
-      attribute="data-theme"
-      defaultTheme="system"
-      enableSystem
-      storageKey="ripfetch:theme"
-      disableTransitionOnChange
-    >
-      <BrowserRouter>
-        <SearchProvider>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<SearchPage />} />
-              <Route path="/game/:id" element={<GamePage />} />
-            </Routes>
-          </Layout>
-        </SearchProvider>
-      </BrowserRouter>
-      <ToastContainer
-        position="bottom-right"
-        autoClose={2500}
-        hideProgressBar
-        newestOnTop
-        closeOnClick
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        role="status"
-      />
-    </ThemeProvider>
+    <>
+      <Router>
+        {(props) => (
+          <ThemeProvider>
+            <SearchProvider>
+              <Layout>{props.children}</Layout>
+            </SearchProvider>
+          </ThemeProvider>
+        )}
+      </Router>
+      <Toaster />
+    </>
   );
 }
-
-export default App;

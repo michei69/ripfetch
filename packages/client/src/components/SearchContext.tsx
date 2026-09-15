@@ -1,93 +1,101 @@
 import {
   createContext,
-  useCallback,
+  createEffect,
+  createSignal,
+  onSettled,
+  untrack,
   useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-  type RefObject,
-} from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
-import { useGameSearch, type GameSearch } from "../hooks/useGameSearch";
+} from "solid-js";
+import type { ParentProps } from "solid-js";
+import { useLocation, useNavigate } from "@solidjs/router";
+import { createGameSearch, type GameSearch } from "../lib/gameSearch";
 
 /**
  * Owns the single search stream, shared by the rail field and the search route.
  *
- * The field's value is local state, never the URL: binding it to `?q=` directly
- * drops keystrokes, because the router's update lands a render later than the
- * next keypress. The URL is then written from that local state, and only read
- * back when it changes for some other reason — a link, the back button, or a
- * route change.
+ * The field's value is a signal, never the URL: binding it to `?q=` directly
+ * drops keystrokes, because the router's update lands after the next keypress.
+ * The URL is then written from that signal, and only read back when it changes
+ * for some other reason — a link, the back button, or a route change.
  */
 type SearchValue = {
-  query: string;
+  query: () => string;
   setQuery: (value: string) => void;
   submit: () => void;
   clear: () => void;
   search: GameSearch;
-  onSearchRoute: boolean;
-  inputRef: RefObject<HTMLInputElement | null>;
+  onSearchRoute: () => boolean;
+  /** Assigns the rail input; `undefined` until the field is mounted. */
+  inputRef: (element: HTMLInputElement) => void;
 };
 
 const SearchContext = createContext<SearchValue | null>(null);
 
-export function SearchProvider({ children }: { children: ReactNode }) {
-  const [params, setParams] = useSearchParams();
-  const { pathname } = useLocation();
+const toPath = (value: string) =>
+  value ? `/?${new URLSearchParams({ q: value }).toString()}` : "/";
+
+export function SearchProvider(props: ParentProps) {
+  const location = useLocation();
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const onSearchRoute = pathname === "/";
-  const urlQuery = params.get("q") ?? "";
+  let input: HTMLInputElement | undefined;
+  const urlQuery = () => {
+    const value = location.query.q;
+    return (Array.isArray(value) ? value[0] : value) ?? "";
+  };
+  const onSearchRoute = () => location.pathname === "/";
 
-  const [query, setQueryState] = useState(urlQuery);
-  /** Last value this component wrote to the URL, to tell our writes apart. */
-  const written = useRef(urlQuery);
+  const [query, setQuery] = createSignal(untrack(urlQuery));
 
-  // Adopt URL changes we did not cause: shared links, back/forward.
-  useEffect(() => {
-    if (urlQuery === written.current) return;
-    written.current = urlQuery;
-    setQueryState(urlQuery);
-  }, [urlQuery]);
+  // The field adopts the URL's query on load, after back/forward, and on any
+  // route change — but never fights the keystrokes that produced it. Only the
+  // two URL facts are tracked, so typing does not re-run this.
+  let written: string | null = null;
+  createEffect(
+    () => [urlQuery(), location.pathname] as const,
+    ([inUrl, pathname]) => {
+      const enteredSearch = pathname === "/";
 
-  // Entering the search route adopts its query; leaving it clears the field.
-  useEffect(() => {
-    const next = pathname === "/" ? urlQuery : "";
-    written.current = next;
-    setQueryState(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
-  const setQuery = useCallback(
-    (value: string) => {
-      setQueryState(value);
-      if (!onSearchRoute) return;
-      written.current = value;
-      setParams(value ? { q: value } : {}, { replace: true });
+      if (enteredSearch && inUrl !== written) {
+        written = inUrl;
+        setQuery(inUrl);
+        return;
+      }
+      // The field's own value is not a reason to re-adopt it.
+      const current = untrack(query);
+      if (!enteredSearch && current !== "") {
+        setQuery("");
+        return;
+      }
+      written = enteredSearch ? current : "";
     },
-    [onSearchRoute, setParams],
   );
 
-  const clear = useCallback(() => setQuery(""), [setQuery]);
+  const setQueryValue = (value: string) => {
+    setQuery(value);
+    if (!onSearchRoute()) return;
+    written = value;
+    // `replace` so a keystroke does not stack history, `scroll: false` so
+    // the rewrite never jumps the page.
+    navigate(toPath(value), { replace: true, scroll: false });
+  };
 
-  const submit = useCallback(() => {
-    const trimmed = query.trim();
-    if (trimmed.length === 0) return;
-    if (onSearchRoute) return;
-    navigate(`/?q=${encodeURIComponent(trimmed)}`);
-  }, [navigate, onSearchRoute, query]);
+  const submit = () => {
+    const trimmed = query().trim();
+    if (trimmed.length === 0 || onSearchRoute()) return;
+    navigate(toPath(trimmed));
+  };
 
   // One stream for the field, on every route: the search route renders the
   // results full-width, other routes show them in the field's popover.
-  const search = useGameSearch(query);
+  const search = createGameSearch(query);
 
-  useEffect(() => {
+  onSettled(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey)
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) {
         return;
-      // Skip on touch devices, where the field would summon a soft keyboard.
+      }
+      // Skip on touch devices, where the field would summon a keyboard.
       if (window.matchMedia("(pointer: coarse)").matches) return;
 
       const target = event.target as HTMLElement | null;
@@ -101,39 +109,43 @@ export function SearchProvider({ children }: { children: ReactNode }) {
       }
 
       event.preventDefault();
-      inputRef.current?.focus();
-      inputRef.current?.select();
+      input?.focus();
+      input?.select();
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  });
 
-  useEffect(() => {
+  onSettled(() => {
     if (!window.matchMedia("(min-width: 1080px)").matches) return;
     if (window.matchMedia("(pointer: coarse)").matches) return;
-    inputRef.current?.focus();
-  }, []);
+    input?.focus();
+  });
 
   return (
-    <SearchContext.Provider
+    <SearchContext
       value={{
         query,
-        setQuery,
+        setQuery: setQueryValue,
         submit,
-        clear,
+        clear: () => setQueryValue(""),
         search,
         onSearchRoute,
-        inputRef,
+        inputRef: (element) => {
+          input = element;
+        },
       }}
     >
-      {children}
-    </SearchContext.Provider>
+      {props.children}
+    </SearchContext>
   );
 }
 
 export function useSearch(): SearchValue {
   const value = useContext(SearchContext);
-  if (!value) throw new Error("useSearch must be used inside a SearchProvider");
+  if (!value) {
+    throw new Error("useSearch must be used inside a SearchProvider");
+  }
   return value;
 }

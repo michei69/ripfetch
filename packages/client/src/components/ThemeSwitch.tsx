@@ -1,16 +1,18 @@
-import { useEffect, useState } from "react";
-import { Monitor, Moon, Sun } from "lucide-react";
-import { useTheme } from "next-themes";
+import type { JSX } from "@solidjs/web";
+import { Dynamic } from "@solidjs/web";
+import { For } from "solid-js";
+import { Monitor, Moon, Sun } from "./icons";
+import { useTheme, type Theme } from "../lib/theme";
 
 const OPTIONS = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
   { value: "system", label: "System", icon: Monitor },
-] as const;
-
-type ThemeValue = (typeof OPTIONS)[number]["value"];
-
-const THEME_COLORS = { light: "#F4F1EA", dark: "#0B0B0C" } as const;
+] as const satisfies readonly {
+  value: Theme;
+  label: string;
+  icon: (props: { size?: number }) => JSX.Element;
+}[];
 
 /**
  * Segmented control rather than a menu: three finite options are cheaper to
@@ -18,39 +20,23 @@ const THEME_COLORS = { light: "#F4F1EA", dark: "#0B0B0C" } as const;
  * accessible name.
  */
 export function ThemeSwitch() {
-  const { theme, resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  useEffect(() => {
-    if (resolvedTheme !== "light" && resolvedTheme !== "dark") return;
-    document
-      .querySelector('meta[name="theme-color"]')
-      ?.setAttribute("content", THEME_COLORS[resolvedTheme]);
-  }, [resolvedTheme]);
-
-  if (!mounted) return <div className="theme-switch" aria-hidden="true" />;
-
-  const active: ThemeValue =
-    theme === "light" || theme === "dark" || theme === "system"
-      ? theme
-      : "system";
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="theme-switch" role="group" aria-label="Color theme">
-      {OPTIONS.map(({ value, label, icon: Icon }) => (
-        <button
-          key={value}
-          type="button"
-          onClick={() => setTheme(value)}
-          aria-pressed={active === value}
-          aria-label={label}
-          title={label}
-        >
-          <Icon size={14} aria-hidden="true" />
-        </button>
-      ))}
+    <div class="theme-switch" role="group" aria-label="Color theme">
+      <For each={OPTIONS}>
+        {(option) => (
+          <button
+            type="button"
+            onClick={() => setTheme(option.value)}
+            aria-pressed={theme() === option.value ? "true" : "false"}
+            aria-label={option.label}
+            title={option.label}
+          >
+            <Dynamic component={option.icon} size={14} />
+          </button>
+        )}
+      </For>
     </div>
   );
 }

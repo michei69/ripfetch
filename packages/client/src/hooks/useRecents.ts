@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { createSignal, onSettled } from "solid-js";
 import {
     readRecentGames,
     RECENTS_UPDATED_EVENT,
@@ -7,14 +7,12 @@ import {
 
 /**
  * Recently viewed games, kept in sync across tabs and with writes made
- * elsewhere in the same tab.
+ * elsewhere in the same tab. One signal, two listeners, for the app's lifetime.
  */
-export function useRecents(): RecentGame[] {
-    const [recents, setRecents] = useState<RecentGame[]>([]);
+export function useRecents() {
+    const [recents, setRecents] = createSignal<RecentGame[]>(readRecentGames());
 
-    useEffect(() => {
-        setRecents(readRecentGames());
-
+    onSettled(() => {
         const sync = () => setRecents(readRecentGames());
         window.addEventListener(RECENTS_UPDATED_EVENT, sync);
         window.addEventListener("storage", sync);
@@ -23,7 +21,7 @@ export function useRecents(): RecentGame[] {
             window.removeEventListener(RECENTS_UPDATED_EVENT, sync);
             window.removeEventListener("storage", sync);
         };
-    }, []);
+    });
 
     return recents;
 }

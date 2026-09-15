@@ -1,0 +1,45 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "useTabs": false,
+  "tabWidth": 4,
+  "printWidth": 80,
+  "singleQuote": false,
+  "jsxSingleQuote": false,
+  "quoteProps": "as-needed",
+  "trailingComma": "all",
+  "semi": true,
+  "arrowParens": "always",
+  "bracketSameLine": false,
+  "bracketSpacing": true,
+  "ignorePatterns": [
+    "packages/client/dist",
+    "packages/server/src/routes.ts",
+    ".omo"
+  ],
+  "overrides": [
+    {
+      "files": ["**/*.tsx"],
+      "options": {
+        "tabWidth": 2
+      }
+    },
+    {
+      "files": ["**/*.json", "**/*.jsonc"],
+      "options": {
+        "tabWidth": 2
+      }
+    },
+    {
+      "files": ["**/*.html"],
+      "options": {
+        "tabWidth": 2
+      }
+    },
+    {
+      "files": ["**/*.css"],
+      "options": {
+        "tabWidth": 2
+      }
+    }
+  ]
+}

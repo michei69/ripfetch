@@ -1,7 +1,6 @@
 {
   "name": "ripfetch",
   "description": "Furry-friendly game download aggregator - Fetching game downloads for you! OwO",
-  "type": "module",
   "author": {
     "name": "michei69",
     "email": "hey@michei.dev",
@@ -10,17 +9,26 @@
   "workspaces": [
     "packages/*"
   ],
+  "type": "module",
   "scripts": {
     "dev": "dotenv -- concurrently -k -n server,client -c blue,green \"bun run --cwd packages/server dev\" \"bun run --cwd packages/client dev\"",
     "dev:client": "dotenv -- bun run --cwd packages/client dev",
     "dev:server": "dotenv -- bun run --cwd packages/server dev",
     "build": "bun run --cwd packages/client build",
     "serve": "dotenv -- bun run --cwd packages/server start",
-    "start": "bun run build && bun run serve"
+    "start": "bun run build && bun run serve",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint --fix .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "check": "oxlint . && oxfmt --check .",
+    "check:fix": "oxlint --fix . && oxfmt ."
   },
   "devDependencies": {
     "concurrently": "^10.0.5",
     "dotenv-cli": "^11.0.0",
+    "oxfmt": "0.67.0",
+    "oxlint": "1.82.0",
     "typescript": "5.9.3"
   }
 }

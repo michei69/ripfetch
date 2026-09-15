@@ -1,3 +1,4 @@
+import { For, Show } from "solid-js";
 import { SOURCES, SOURCE_COUNT, SOURCE_RANK } from "../lib/sources";
 
 const NOTE_TONE: Record<string, string> = {
@@ -15,24 +16,25 @@ const NOTE_TONE: Record<string, string> = {
 export function SourceIndex() {
   return (
     <section>
-      <p className="label mb-1">{SOURCE_COUNT} sources</p>
-      <div className="border-t border-line-soft">
-        {SOURCES.map((source) => (
-          <div key={source.key} className="src-item">
-            <span className="src-item-no">
-              {String(SOURCE_RANK[source.key]! + 1).padStart(2, "0")}
-            </span>
-            <span className="src-item-name">{source.name}</span>
-            {source.note && (
-              <span
-                className="src-item-note"
-                data-tone={NOTE_TONE[source.note]}
-              >
-                {source.note}
+      <p class="label mb-1">{SOURCE_COUNT} sources</p>
+      <div class="border-t border-line-soft">
+        <For each={SOURCES}>
+          {(source) => (
+            <div class="src-item">
+              <span class="src-item-no">
+                {String(SOURCE_RANK[source.key]! + 1).padStart(2, "0")}
               </span>
-            )}
-          </div>
-        ))}
+              <span class="src-item-name">{source.name}</span>
+              <Show when={source.note}>
+                {(note) => (
+                  <span class="src-item-note" data-tone={NOTE_TONE[note()]}>
+                    {note()}
+                  </span>
+                )}
+              </Show>
+            </div>
+          )}
+        </For>
       </div>
     </section>
   );

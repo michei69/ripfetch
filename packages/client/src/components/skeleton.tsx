@@ -1,7 +1,7 @@
 import { cn } from "../lib/utils";
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("skeleton", className)} />;
+export function Skeleton(props: { class?: string }) {
+  return <div class={cn("skeleton", props.class)} />;
 }
 
 /**
@@ -11,33 +11,33 @@ export function Skeleton({ className }: { className?: string }) {
 export function GamePageSkeleton() {
   return (
     <div aria-hidden="true">
-      <div className="hero">
-        <Skeleton className="hero-banner" />
+      <div class="hero">
+        <Skeleton class="hero-banner" />
 
         <div>
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="mt-2 h-4 w-2/3" />
+          <Skeleton class="h-4 w-full" />
+          <Skeleton class="mt-2 h-4 w-2/3" />
         </div>
 
-        <div className="facts">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="mt-1 h-8 w-full" />
-          <Skeleton className="mt-1 h-8 w-full" />
-          <Skeleton className="mt-1 h-8 w-full" />
+        <div class="facts">
+          <Skeleton class="h-8 w-full" />
+          <Skeleton class="mt-1 h-8 w-full" />
+          <Skeleton class="mt-1 h-8 w-full" />
+          <Skeleton class="mt-1 h-8 w-full" />
         </div>
       </div>
 
-      <div className="mt-14">
-        <div className="sec-head">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-3.5 w-32" />
+      <div class="mt-14">
+        <div class="sec-head">
+          <Skeleton class="h-6 w-40" />
+          <Skeleton class="h-3.5 w-32" />
         </div>
-        <Skeleton className="mt-4 h-1 w-full" />
-        <div className="mt-6">
-          <Skeleton className="h-3.5 w-32" />
-          <Skeleton className="mt-3 h-11 w-full" />
-          <Skeleton className="mt-1 h-11 w-full" />
-          <Skeleton className="mt-1 h-11 w-full" />
+        <Skeleton class="mt-4 h-1 w-full" />
+        <div class="mt-6">
+          <Skeleton class="h-3.5 w-32" />
+          <Skeleton class="mt-3 h-11 w-full" />
+          <Skeleton class="mt-1 h-11 w-full" />
+          <Skeleton class="mt-1 h-11 w-full" />
         </div>
       </div>
     </div>

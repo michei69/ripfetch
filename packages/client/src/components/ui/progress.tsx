@@ -2,33 +2,36 @@ import { cn } from "../../lib/utils";
 
 type ProgressProps = {
   value: number;
-  className?: string;
+  class?: string;
   label?: string;
 };
 
 /**
  * A hairline measure of how many sources have answered. Deliberately thin: the
  * page is an index, so the progress indicator reads as a rule that fills.
+ *
+ * `value` is read inside the JSX, so only the transform binding re-runs as the
+ * stream reports progress — the element tree is built once.
  */
-export function Progress({ value, className, label }: ProgressProps) {
-  const clamped = Math.max(0, Math.min(100, value));
+export function Progress(props: ProgressProps) {
+  const clamped = () => Math.max(0, Math.min(100, props.value));
 
   return (
-    <div className={cn("progress", className)}>
+    <div class={cn("progress", props.class)}>
       <div
-        className="progress-track"
+        class="progress-track"
         role="progressbar"
-        aria-label={label}
+        aria-label={props.label}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={Math.round(clamped)}
+        aria-valuenow={Math.round(clamped())}
       >
         <div
-          className="progress-fill"
-          style={{ transform: `scaleX(${clamped / 100})` }}
+          class="progress-fill"
+          style={{ transform: `scaleX(${clamped() / 100})` }}
         />
       </div>
-      <span className="progress-num">{Math.round(clamped)}%</span>
+      <span class="progress-num">{Math.round(clamped())}%</span>
     </div>
   );
 }

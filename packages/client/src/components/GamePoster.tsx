@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import type { SearchResult } from "../hooks/useGameSearch";
+import { createMemo, createSignal, For, Show } from "solid-js";
+import type { SearchResult } from "../lib/gameSearch";
 import { steamCapsuleUrl, steamHeaderUrl } from "../lib/steam";
 
 type TileGame = Pick<SearchResult, "id" | "name"> & {
@@ -8,29 +7,33 @@ type TileGame = Pick<SearchResult, "id" | "name"> & {
   small_capsule?: string;
 };
 
+const href = (id: number) => `/game/${id}`;
+
 /**
  * Steam serves a header for every app, but capsule art is not guaranteed and
  * the CDN 404s without an error status, so each fallback is only spent after
- * the previous image actually fails to load.
+ * the previous image actually failed to load.
  */
-function useCover(game: TileGame) {
-  const primary = game.cover || steamHeaderUrl(game.id);
-  const [src, setSrc] = useState(primary);
-  const [failed, setFailed] = useState(false);
+function useCover(game: () => TileGame) {
+  const primary = createMemo(() => game().cover || steamHeaderUrl(game().id));
+  const [src, setSrc] = createSignal<string>();
+  const [failed, setFailed] = createSignal(false);
 
   const onError = () => {
-    if (src !== primary) {
+    const current = src() ?? primary();
+    if (current !== primary()) {
       setFailed(true);
       return;
     }
-    if (game.small_capsule) {
-      setSrc(steamCapsuleUrl(game.id, game.small_capsule));
+    const capsule = game().small_capsule;
+    if (capsule) {
+      setSrc(steamCapsuleUrl(game().id, capsule));
       return;
     }
     setFailed(true);
   };
 
-  return { src, failed, onError };
+  return { src: () => src() ?? primary(), failed, onError };
 }
 
 type GamePosterProps = {
@@ -38,69 +41,72 @@ type GamePosterProps = {
   onNavigate?: () => void;
 };
 
-export function GamePoster({ game, onNavigate }: GamePosterProps) {
-  const { src, failed, onError } = useCover(game);
+export function GamePoster(props: GamePosterProps) {
+  const cover = useCover(() => props.game);
 
   return (
-    <Link to={`/game/${game.id}`} className="poster" onClick={onNavigate}>
-      <div className="poster-art">
-        {failed ? (
-          <div className="poster-art-fallback" aria-hidden="true">
-            {game.name.slice(0, 1).toUpperCase()}
-          </div>
-        ) : (
+    <a href={href(props.game.id)} class="poster" onClick={props.onNavigate}>
+      <div class="poster-art">
+        <Show
+          when={!cover.failed()}
+          fallback={
+            <div class="poster-art-fallback" aria-hidden="true">
+              {props.game.name.slice(0, 1).toUpperCase()}
+            </div>
+          }
+        >
           <img
-            src={src}
+            src={cover.src()}
             alt=""
             loading="lazy"
             decoding="async"
-            onError={onError}
+            onError={cover.onError}
           />
-        )}
+        </Show>
       </div>
-      <p className="poster-title" title={game.name}>
-        {game.name}
+      <p class="poster-title" title={props.game.name}>
+        {props.game.name}
       </p>
-      <p className="poster-id mono">appid {game.id}</p>
-    </Link>
+      <p class="poster-id mono">appid {props.game.id}</p>
+    </a>
   );
 }
 
-export function ResultRows({
-  results,
-  onNavigate,
-}: {
+export function ResultRows(props: {
   results: SearchResult[];
   onNavigate?: () => void;
 }) {
   return (
-    <div className="results-list">
-      {results.map((game) => (
-        <ResultRow key={game.id} game={game} onNavigate={onNavigate} />
-      ))}
+    <div class="results-list">
+      <For each={props.results}>
+        {(game) => <ResultRow game={game} onNavigate={props.onNavigate} />}
+      </For>
     </div>
   );
 }
 
-export function ResultRow({ game, onNavigate }: GamePosterProps) {
-  const { src, failed, onError } = useCover(game);
+export function ResultRow(props: GamePosterProps) {
+  const cover = useCover(() => props.game);
 
   return (
-    <Link to={`/game/${game.id}`} className="result-row" onClick={onNavigate}>
-      {failed ? (
-        <div className="result-fallback" aria-hidden="true">
-          {game.name.slice(0, 1).toUpperCase()}
-        </div>
-      ) : (
+    <a href={href(props.game.id)} class="result-row" onClick={props.onNavigate}>
+      <Show
+        when={!cover.failed()}
+        fallback={
+          <div class="result-fallback" aria-hidden="true">
+            {props.game.name.slice(0, 1).toUpperCase()}
+          </div>
+        }
+      >
         <img
-          src={src}
+          src={cover.src()}
           alt=""
           loading="lazy"
           decoding="async"
-          onError={onError}
+          onError={cover.onError}
         />
-      )}
-      <span className="result-name">{game.name}</span>
-    </Link>
+      </Show>
+      <span class="result-name">{props.game.name}</span>
+    </a>
   );
 }
