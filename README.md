@@ -1,5 +1,7 @@
 # ripfetch
 
+![](https://raw.githubusercontent.com/michei69/disclaimers/refs/heads/main/ai/x4.png)
+
 _fetching game downloads for you~ UwU_
 
 ripfetch is a game download aggregator that searches across multiple sources to find steam game downloads, because why should u have to hunt for them yourself?
